@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Map Tile Debug</title>
+  <link href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: white; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); max-width: 400px; }
+  </style>
+</head>
+<body>
+<div id="info">
+  <div>Zoom: <span id="zoom">-</span></div>
+  <div>Center: <span id="center">-</span></div>
+  <div id="status">Loading...</div>
+</div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
+<script>
+const TILE_URL = 'http://localhost:8070/api/v1/tiles';
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    glyphs: 'https://fonts.openmaptiles.org/fonts/{fontstack}/{range}.pbf',
+    sources: {
+      'osm': {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+      },
+      'survey': {
+        type: 'vector',
+        tiles: [TILE_URL + '/survey/{z}/{x}/{y}.pbf'],
+        tileSize: 512,
+      },
+      'ba': {
+        type: 'vector',
+        tiles: [TILE_URL + '/ba/{z}/{x}/{y}.pbf'],
+        tileSize: 512,
+      }
+    },
+    layers: [
+      { id: 'base', type: 'raster', source: 'osm' },
+      {
+        id: 'ba-fill',
+        type: 'fill',
+        source: 'ba',
+        'source-layer': 'ba',
+        paint: { 'fill-color': '#3b82f6', 'fill-opacity': 0.1 }
+      },
+      {
+        id: 'ba-line',
+        type: 'line',
+        source: 'ba',
+        'source-layer': 'ba',
+        paint: { 'line-color': '#3b82f6', 'line-width': 2, 'line-opacity': 0.6 }
+      },
+      {
+        id: 'pts',
+        type: 'circle',
+        source: 'survey',
+        'source-layer': 'survey_points',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            8, 3, 12, 6, 16, 10
+          ],
+          'circle-color': [
+            'match', ['get', 'qa_status'],
+            'Accept', '#22c55e',
+            'Reject', '#ef4444',
+            'Pending', '#eab308',
+            '#9ca3af'
+          ],
+          'circle-stroke-color': '#fff',
+          'circle-stroke-width': 1.5,
+        }
+      }
+    ]
+  },
+  center: [101.55, 3.05],
+  zoom: 10,
+});
+
+map.on('load', () => {
+  document.getElementById('status').innerText = 'Map loaded. Waiting for tiles...';
+  
+  // Count rendered features
+  setTimeout(() => {
+    const features = map.queryRenderedFeatures({ layers: ['pts'] });
+    document.getElementById('status').innerText = 
+      features.length + ' survey points visible. tileSize=512';
+    console.log('Rendered features:', features.length);
+    if (features[0]) {
+      console.log('First feature:', features[0].properties);
+    }
+  }, 3000);
+});
+
+map.on('move', () => {
+  document.getElementById('zoom').innerText = map.getZoom().toFixed(2);
+  document.getElementById('center').innerText = 
+    map.getCenter().lng.toFixed(4) + ', ' + map.getCenter().lat.toFixed(4);
+});
+
+map.on('click', 'pts', (e) => {
+  const f = e.features[0];
+  new maplibregl.Popup()
+    .setLngLat(e.lngLat)
+    .setHTML('<b>' + f.properties.table_name + '</b><br>QA: ' + f.properties.qa_status + '<br>ID: ' + f.properties.point_id)
+    .addTo(map);
+});
+
+// Listen for tile errors
+map.on('sourceload', (e) => {
+  console.log('Source loaded:', e.sourceId);
+  document.getElementById('status').innerText = 'Source loaded: ' + e.sourceId;
+});
+
+map.on('error', (e) => {
+  console.error('Map error:', e);
+});
+</script>
+</body>
+</html>

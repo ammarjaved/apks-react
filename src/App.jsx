@@ -1,0 +1,51 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import Layout from './components/layout/Layout'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Dashboard from './pages/Dashboard'
+import MapOverview from './pages/MapOverview'
+import AdminUsers from './pages/AdminUsers'
+import AdminTeams from './pages/AdminTeams'
+import SurveyPage from './pages/surveys/SurveyPage'
+import { SURVEY_LIST } from './config/surveyConfigs'
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          <Route
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/" element={<Dashboard />} />
+
+            <Route path="/map" element={<MapOverview />} />
+
+            <Route path="/users" element={<AdminUsers />} />
+
+            <Route path="/teams" element={<AdminTeams />} />
+
+            {SURVEY_LIST.map((survey) => (
+              <Route
+                key={survey.key}
+                path={`/${survey.key}`}
+                element={<SurveyPage key={survey.key} surveyKey={survey.key} />}
+              />
+            ))}
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}

@@ -1,0 +1,219 @@
+- generic [ref=f1e5]:
+  - complementary [ref=f1e6]:
+    - generic [ref=f1e7]:
+      - img "APKS" [ref=f1e8]
+      - generic [ref=f1e9]:
+        - paragraph [ref=f1e10]: APKS
+        - paragraph [ref=f1e11]: Inspection System
+    - navigation [ref=f1e12]:
+      - link "Dashboard" [ref=f1e13] [cursor=pointer]:
+        - /url: /apks
+      - paragraph [ref=f1e17]: Inspections
+      - link [ref=f1e18] [cursor=pointer]:
+        - /url: /apks/savr
+        - paragraph [ref=f1e22]: SAVR
+      - link [ref=f1e23] [cursor=pointer]:
+        - /url: /apks/substation
+        - paragraph [ref=f1e27]: Substation
+      - link [ref=f1e28] [cursor=pointer]:
+        - /url: /apks/feeder_pillar
+        - paragraph [ref=f1e32]: Feeder Pillar
+      - link [ref=f1e33] [cursor=pointer]:
+        - /url: /apks/link_box
+        - paragraph [ref=f1e37]: Link Box
+      - link [ref=f1e38] [cursor=pointer]:
+        - /url: /apks/cable_bridge
+        - paragraph [ref=f1e42]: Cable Bridge
+      - link [ref=f1e43] [cursor=pointer]:
+        - /url: /apks/arus
+        - paragraph [ref=f1e47]: Arus
+      - link [ref=f1e48] [cursor=pointer]:
+        - /url: /apks/height_clearance
+        - paragraph [ref=f1e52]: Height Clearance
+      - link [ref=f1e53] [cursor=pointer]:
+        - /url: /apks/ffw
+        - paragraph [ref=f1e57]: FFW
+      - paragraph [ref=f1e59]: Map
+      - link "Map Overview" [ref=f1e60] [cursor=pointer]:
+        - /url: /apks/map
+      - paragraph [ref=f1e64]: Admin
+      - link "User Management" [ref=f1e65] [cursor=pointer]:
+        - /url: /apks/users
+      - link "Team Management" [ref=f1e68] [cursor=pointer]:
+        - /url: /apks/teams
+    - generic [ref=f1e71]:
+      - generic [ref=f1e72]:
+        - generic [ref=f1e73]: R
+        - generic [ref=f1e74]:
+          - paragraph [ref=f1e75]: rahim
+          - paragraph [ref=f1e76]: admin
+      - button "Sign Out" [ref=f1e77] [cursor=pointer]
+  - main [ref=f1e79]:
+    - generic [ref=f1e80]:
+      - generic [ref=f1e82]:
+        - button [ref=f1e83] [cursor=pointer]
+        - generic [ref=f1e86]:
+          - heading "Substation" [level=1] [ref=f1e87]
+          - paragraph [ref=f1e88]: Pencawang (PE) Inspection
+      - generic [ref=f1e208]:
+        - generic [ref=f1e209]:
+          - generic [ref=f1e210]:
+            - generic [ref=f1e211]:
+              - heading "Substation Details" [level=2] [ref=f1e212]
+              - generic [ref=f1e213]: Pending
+            - paragraph [ref=f1e215]: 2b502982-f5dd-4b44-9210-2e903233e7d5
+          - generic [ref=f1e216]:
+            - button "Back" [ref=f1e217] [cursor=pointer]
+            - button "Accept" [ref=f1e220] [cursor=pointer]
+            - button "Reject" [ref=f1e221] [cursor=pointer]
+            - button "Edit" [ref=f1e222] [cursor=pointer]
+            - button "Delete" [ref=f1e223] [cursor=pointer]
+        - generic [ref=f1e224]:
+          - generic [ref=f1e226]:
+            - generic [ref=f1e227]:
+              - region "Map" [ref=f1e228]
+              - generic:
+                - generic [ref=f1e229]:
+                  - button "Zoom in" [ref=f1e230] [cursor=pointer]
+                  - button "Zoom out" [ref=f1e232] [cursor=pointer]
+                  - button "Reset bearing to north" [ref=f1e234]
+                - generic: 100 m
+                - group [ref=f1e237]:
+                  - generic "Toggle attribution" [ref=f1e238] [cursor=pointer]
+                  - generic [ref=f1e239]:
+                    - text: © Esri |
+                    - link "MapLibre" [ref=f1e240] [cursor=pointer]:
+                      - /url: https://maplibre.org/
+            - generic [ref=f1e241]:
+              - button "Satellite" [ref=f1e242] [cursor=pointer]
+              - button "Street" [ref=f1e243] [cursor=pointer]
+            - generic [ref=f1e244]:
+              - paragraph [ref=f1e245]: Layers
+              - generic [ref=f1e246] [cursor=pointer]:
+                - checkbox "Substation Points" [checked] [ref=f1e247]
+                - generic [ref=f1e248]: Substation Points
+              - generic [ref=f1e249] [cursor=pointer]:
+                - checkbox "BA Boundaries" [checked] [ref=f1e250]
+                - generic [ref=f1e251]: BA Boundaries
+            - generic [ref=f1e252]:
+              - button "Legend" [ref=f1e253] [cursor=pointer]
+              - generic [ref=f1e257]:
+                - generic [ref=f1e258]: Accepted
+                - generic [ref=f1e261]: Pending
+                - generic [ref=f1e264]: Rejected
+                - generic [ref=f1e267]: Unsurveyed
+          - generic [ref=f1e270]:
+            - generic [ref=f1e271]:
+              - heading "General Info" [level=3] [ref=f1e272]
+              - generic [ref=f1e273]:
+                - generic [ref=f1e274]:
+                  - paragraph [ref=f1e275]: FL Substation
+                  - generic [ref=f1e276]: Test fl
+                - generic [ref=f1e277]:
+                  - paragraph [ref=f1e278]: Substation/Feeder Pillar Name
+                  - generic [ref=f1e279]: Test nama
+                - generic [ref=f1e280]:
+                  - paragraph [ref=f1e281]: Type
+                  - generic [ref=f1e282]: Padat
+                - generic [ref=f1e283]:
+                  - paragraph [ref=f1e284]: Voltage
+                  - generic [ref=f1e285]: 11kv
+                - generic [ref=f1e286]:
+                  - paragraph [ref=f1e287]: Survey Date
+                  - generic [ref=f1e288]: 8/2/2026
+                - generic [ref=f1e289]:
+                  - paragraph [ref=f1e290]: Patrol Time
+                  - generic [ref=f1e291]: —
+                - generic [ref=f1e292]:
+                  - paragraph [ref=f1e293]: Surveyed
+                  - generic [ref=f1e294]: "No"
+            - generic [ref=f1e296]:
+              - heading "Gate Status" [level=3] [ref=f1e297]
+              - generic [ref=f1e298]:
+                - generic [ref=f1e299]:
+                  - paragraph [ref=f1e300]: Gate Locked (No Defect)
+                  - generic [ref=f1e301]: "No"
+                - generic [ref=f1e303]:
+                  - paragraph [ref=f1e304]: Gate Damaged
+                  - generic [ref=f1e305]: "Yes"
+                - generic [ref=f1e307]:
+                  - paragraph [ref=f1e308]: Gate Other
+                  - generic [ref=f1e309]: "Yes"
+            - generic [ref=f1e311]:
+              - heading "Grounds & Building" [level=3] [ref=f1e312]
+              - generic [ref=f1e313]:
+                - generic [ref=f1e314]:
+                  - paragraph [ref=f1e315]: Long Grass (Semak/Rumput Panjang)
+                  - generic [ref=f1e316]: "1"
+                - generic [ref=f1e317]:
+                  - paragraph [ref=f1e318]: Tree Branches in P.E
+                  - generic [ref=f1e319]: "1"
+                - generic [ref=f1e320]:
+                  - paragraph [ref=f1e321]: Building - Broken Roof
+                  - generic [ref=f1e322]: "Yes"
+                - generic [ref=f1e324]:
+                  - paragraph [ref=f1e325]: Building - Broken Gutter
+                  - generic [ref=f1e326]: "Yes"
+                - generic [ref=f1e328]:
+                  - paragraph [ref=f1e329]: Building - Broken Base
+                  - generic [ref=f1e330]: "Yes"
+                - generic [ref=f1e332]:
+                  - paragraph [ref=f1e333]: Building - Other
+                  - generic [ref=f1e334]: "Yes"
+                - generic [ref=f1e336]:
+                  - paragraph [ref=f1e337]: Cleaning Illegal Ads/Banners
+                  - generic [ref=f1e338]: "1"
+            - generic [ref=f1e339]:
+              - heading "Substation Images" [level=3] [ref=f1e340]
+              - generic [ref=f1e341]:
+                - generic [ref=f1e342]:
+                  - paragraph [ref=f1e343]: Substation Image 1
+                  - generic [ref=f1e344]: —
+                - generic [ref=f1e345]:
+                  - paragraph [ref=f1e346]: Substation Image 2
+                  - generic [ref=f1e347]: —
+                - generic [ref=f1e348]:
+                  - paragraph [ref=f1e349]: Gate Before
+                  - generic [ref=f1e350]: —
+                - generic [ref=f1e351]:
+                  - paragraph [ref=f1e352]: Banner Before
+                  - generic [ref=f1e353]: —
+                - generic [ref=f1e354]:
+                  - paragraph [ref=f1e355]: Gate During
+                  - generic [ref=f1e356]: —
+                - generic [ref=f1e357]:
+                  - paragraph [ref=f1e358]: Banner During
+                  - generic [ref=f1e359]: —
+                - generic [ref=f1e360]:
+                  - paragraph [ref=f1e361]: Gate After
+                  - generic [ref=f1e362]: —
+                - generic [ref=f1e363]:
+                  - paragraph [ref=f1e364]: Banner After
+                  - generic [ref=f1e365]: —
+                - generic [ref=f1e366]:
+                  - paragraph [ref=f1e367]: Long Grass Image
+                  - generic [ref=f1e368]: —
+                - generic [ref=f1e369]:
+                  - paragraph [ref=f1e370]: Tree Branches Image
+                  - generic [ref=f1e371]: —
+                - generic [ref=f1e372]:
+                  - paragraph [ref=f1e373]: Building Image
+                  - generic [ref=f1e374]: —
+                - generic [ref=f1e375]:
+                  - paragraph [ref=f1e376]: Other Image
+                  - generic [ref=f1e377]: —
+            - generic [ref=f1e378]:
+              - heading "Metadata" [level=3] [ref=f1e379]
+              - generic [ref=f1e380]:
+                - generic [ref=f1e381]:
+                  - paragraph [ref=f1e382]: Created By
+                  - paragraph [ref=f1e383]: fa2d9dc9
+                - generic [ref=f1e384]:
+                  - paragraph [ref=f1e385]: Created At
+                  - paragraph [ref=f1e386]: 8/3/2026, 1:19:09 AM
+                - generic [ref=f1e387]:
+                  - paragraph [ref=f1e388]: Updated At
+                  - paragraph [ref=f1e389]: 8/3/2026, 1:19:09 AM
+                - generic [ref=f1e390]:
+                  - paragraph [ref=f1e391]: Cycle
+                  - paragraph [ref=f1e392]: "1"

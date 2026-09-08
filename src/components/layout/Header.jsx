@@ -1,6 +1,6 @@
 export default function Header({ title, subtitle, onMenuClick, actions }) {
   return (
-    <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 flex-shrink-0">
+    <header className="min-h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 flex-shrink-0 gap-3 py-2 flex-wrap">
       <div className="flex items-center gap-3 min-w-0">
         {onMenuClick && (
           <button

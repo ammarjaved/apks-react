@@ -1,0 +1,60 @@
+[     161ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:21550
+[     190ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:5199/apks/node_modules/.vite/deps/react-router-dom.js?v=7a79028a:4426
+[     191ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:5199/apks/node_modules/.vite/deps/react-router-dom.js?v=7a79028a:4426
+[    1180ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://121.121.232.53:5000/api/v1/users?page_size=200:0
+[    1188ms] Error: Objects are not valid as a React child (found: object with keys {type, loc, msg, input, ctx}). If you meant to render a collection of children, use an array instead.
+    at throwOnInvalidObjectType (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:9934:17)
+    at createChild (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:10110:15)
+    at reconcileChildrenArray (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:10282:33)
+    at reconcileChildFibers2 (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:10559:24)
+    at reconcileChildren (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:14290:37)
+    at updateHostComponent (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:14807:11)
+    at beginWork (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:15935:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:3699:24)
+    at invokeGuardedCallback (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:3733:39)
+[    1194ms] Error: Objects are not valid as a React child (found: object with keys {type, loc, msg, input, ctx}). If you meant to render a collection of children, use an array instead.
+    at throwOnInvalidObjectType (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:9934:17)
+    at createChild (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:10110:15)
+    at reconcileChildrenArray (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:10282:33)
+    at reconcileChildFibers2 (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:10559:24)
+    at reconcileChildren (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:14290:37)
+    at updateHostComponent (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:14807:11)
+    at beginWork (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:15935:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:3699:24)
+    at invokeGuardedCallback (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:3733:39)
+[    1195ms] [ERROR] The above error occurred in the <div> component:
+
+    at div
+    at div
+    at div
+    at AdminUsers (http://localhost:5199/apks/src/pages/AdminUsers.jsx:29:30)
+    at RenderedRoute (http://localhost:5199/apks/node_modules/.vite/deps/react-router-dom.js?v=7a79028a:4122:5)
+    at Outlet (http://localhost:5199/apks/node_modules/.vite/deps/react-router-dom.js?v=7a79028a:4528:26)
+    at main
+    at div
+    at div
+    at Layout (http://localhost:5199/apks/src/components/layout/Layout.jsx?t=1785716825982:23:41)
+    at ProtectedRoute (http://localhost:5199/apks/src/components/auth/ProtectedRoute.jsx:20:42)
+    at RenderedRoute (http://localhost:5199/apks/node_modules/.vite/deps/react-router-dom.js?v=7a79028a:4122:5)
+    at Routes (http://localhost:5199/apks/node_modules/.vite/deps/react-router-dom.js?v=7a79028a:4592:5)
+    at Router (http://localhost:5199/apks/node_modules/.vite/deps/react-router-dom.js?v=7a79028a:4535:15)
+    at BrowserRouter (http://localhost:5199/apks/node_modules/.vite/deps/react-router-dom.js?v=7a79028a:5273:5)
+    at AuthProvider (http://localhost:5199/apks/src/context/AuthContext.jsx:21:32)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:14031
+[    1196ms] Error: Objects are not valid as a React child (found: object with keys {type, loc, msg, input, ctx}). If you meant to render a collection of children, use an array instead.
+    at throwOnInvalidObjectType (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:9934:17)
+    at createChild (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:10110:15)
+    at reconcileChildrenArray (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:10282:33)
+    at reconcileChildFibers2 (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:10559:24)
+    at reconcileChildren (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:14290:37)
+    at updateHostComponent (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:14807:11)
+    at beginWork (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:15935:22)
+    at beginWork$1 (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:19753:22)
+    at performUnitOfWork (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:19198:20)
+    at workLoopSync (http://localhost:5199/apks/node_modules/.vite/deps/chunk-PJEEZAML.js?v=7a79028a:19137:13)
+[    1412ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://121.121.232.53:5000/api/v1/users?page_size=200:0

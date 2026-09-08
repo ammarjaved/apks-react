@@ -1,0 +1,34 @@
+# Optional. The app uses hash routing (/#/login), so deep links and refreshes
+# already work on a plain static host with no server configuration at all.
+#
+# This file only adds two niceties, and is safely ignored if the server has
+# AllowOverride None or lacks mod_rewrite:
+#
+#   1. A fallback so hand-typed path URLs (/login) still land on the app
+#      instead of a 404. No RewriteBase, so the folder stays portable.
+#   2. Cache headers — hashed assets are immutable, index.html must never be
+#      cached or clients keep booting a stale build after a deploy.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Never rewrite the shell itself.
+  RewriteRule ^index\.html$ - [L]
+
+  # Serve real files and directories (assets, icons, …) untouched.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Anything else: hand back the app shell.
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|woff2?|png|jpe?g|svg|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "index\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+</IfModule>

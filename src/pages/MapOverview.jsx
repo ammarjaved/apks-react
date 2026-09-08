@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import MapView from '../components/map/MapView'
 import Header from '../components/layout/Header'
-import { SURVEY_LIST, SURVEY_TYPES } from '../config/surveyConfigs'
+import { VISIBLE_SURVEY_LIST, SURVEY_TYPES } from '../config/surveyConfigs'
 import { useAuth } from '../context/AuthContext'
 
 export default function MapOverview() {
@@ -19,7 +19,11 @@ export default function MapOverview() {
       : SURVEY_TYPES[selectedType]
 
   const handlePointSelect = ({ table_name }) => {
-    const match = SURVEY_LIST.find((s) => s.tableName === table_name)
+    if (surveyConfig?.attachToPole && table_name === (surveyConfig.mapTableName || 'tbl_savr')) {
+      navigate(`/${surveyConfig.key}`)
+      return
+    }
+    const match = VISIBLE_SURVEY_LIST.find((s) => s.tableName === table_name)
     if (match) navigate(`/${match.key}`)
   }
 
@@ -37,7 +41,7 @@ export default function MapOverview() {
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="all">All Surveys</option>
-            {SURVEY_LIST.map((s) => (
+            {VISIBLE_SURVEY_LIST.map((s) => (
               <option key={s.key} value={s.key}>
                 {s.title}
               </option>

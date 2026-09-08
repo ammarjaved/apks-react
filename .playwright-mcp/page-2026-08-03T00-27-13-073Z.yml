@@ -1,0 +1,210 @@
+- generic [ref=f3e5]:
+  - complementary [ref=f3e6]:
+    - generic [ref=f3e7]:
+      - img "APKS" [ref=f3e8]
+      - generic [ref=f3e9]:
+        - paragraph [ref=f3e10]: APKS
+        - paragraph [ref=f3e11]: Inspection System
+    - navigation [ref=f3e12]:
+      - link "Dashboard" [ref=f3e13] [cursor=pointer]:
+        - /url: /apks
+      - paragraph [ref=f3e17]: Inspections
+      - link [ref=f3e18] [cursor=pointer]:
+        - /url: /apks/savr
+        - paragraph [ref=f3e22]: SAVR
+      - link [ref=f3e23] [cursor=pointer]:
+        - /url: /apks/substation
+        - paragraph [ref=f3e27]: Substation
+      - link [ref=f3e28] [cursor=pointer]:
+        - /url: /apks/feeder_pillar
+        - paragraph [ref=f3e32]: Feeder Pillar
+      - link [ref=f3e33] [cursor=pointer]:
+        - /url: /apks/link_box
+        - paragraph [ref=f3e37]: Link Box
+      - link [ref=f3e38] [cursor=pointer]:
+        - /url: /apks/cable_bridge
+        - paragraph [ref=f3e42]: Cable Bridge
+      - link [ref=f3e43] [cursor=pointer]:
+        - /url: /apks/arus
+        - paragraph [ref=f3e47]: Arus
+      - link [ref=f3e48] [cursor=pointer]:
+        - /url: /apks/height_clearance
+        - paragraph [ref=f3e52]: Height Clearance
+      - link [ref=f3e53] [cursor=pointer]:
+        - /url: /apks/ffw
+        - paragraph [ref=f3e57]: FFW
+      - paragraph [ref=f3e59]: Map
+      - link "Map Overview" [ref=f3e60] [cursor=pointer]:
+        - /url: /apks/map
+      - paragraph [ref=f3e64]: Admin
+      - link "User Management" [ref=f3e65] [cursor=pointer]:
+        - /url: /apks/users
+      - link "Team Management" [ref=f3e68] [cursor=pointer]:
+        - /url: /apks/teams
+    - generic [ref=f3e71]:
+      - generic [ref=f3e72]:
+        - generic [ref=f3e73]: R
+        - generic [ref=f3e74]:
+          - paragraph [ref=f3e75]: rahim
+          - paragraph [ref=f3e76]: admin
+      - button "Sign Out" [ref=f3e77] [cursor=pointer]
+  - main [ref=f3e79]:
+    - generic [ref=f3e80]:
+      - generic [ref=f3e82]:
+        - button [ref=f3e83] [cursor=pointer]
+        - generic [ref=f3e86]:
+          - heading "Substation" [level=1] [ref=f3e87]
+          - paragraph [ref=f3e88]: Pencawang (PE) Inspection
+      - generic [ref=f3e90]:
+        - generic [ref=f3e91]:
+          - button "Form Data" [ref=f3e92] [cursor=pointer]
+          - button "Map●" [ref=f3e93] [cursor=pointer]
+        - generic [ref=f3e95]:
+          - generic [ref=f3e96]:
+            - heading "Location Assignment" [level=3] [ref=f3e97]
+            - generic [ref=f3e98]:
+              - generic [ref=f3e99]:
+                - generic [ref=f3e100]: Business Area*
+                - combobox [ref=f3e101]:
+                  - option "— Select BA —" [selected]
+                  - option "6121 - Kuala Lumpur Barat"
+                  - option "6122 - Kuala Lumpur Timur"
+              - generic [ref=f3e102]:
+                - generic [ref=f3e103]: Zone
+                - generic [ref=f3e104]: — (auto from BA)
+          - generic [ref=f3e105]:
+            - heading "General Info" [level=3] [ref=f3e106]
+            - generic [ref=f3e107]:
+              - generic [ref=f3e108]:
+                - generic [ref=f3e109]: FL Substation*
+                - textbox [ref=f3e110]
+              - generic [ref=f3e111]:
+                - generic [ref=f3e112]: Substation/Feeder Pillar Name*
+                - textbox [ref=f3e113]
+              - generic [ref=f3e114]:
+                - generic [ref=f3e115]: Type
+                - combobox [ref=f3e116]:
+                  - option "—" [selected]
+                  - option "Indoor"
+                  - option "Attach Building"
+                  - option "Outdoor"
+                  - option "Padat"
+                  - option "PE Atas Tiang (PET)"
+              - generic [ref=f3e117]:
+                - generic [ref=f3e118]: Voltage
+                - combobox [ref=f3e119]:
+                  - option "—" [selected]
+                  - option "11kv"
+                  - option "33kv"
+              - generic [ref=f3e120]:
+                - generic [ref=f3e121]: Survey Date*
+                - textbox [ref=f3e122]
+              - generic [ref=f3e123]:
+                - generic [ref=f3e124]: Patrol Time*
+                - textbox [ref=f3e125]
+              - generic [ref=f3e126]:
+                - generic [ref=f3e127]: Surveyed
+                - generic [ref=f3e128] [cursor=pointer]:
+                  - checkbox "Yes" [ref=f3e129]
+                  - generic [ref=f3e130]: "Yes"
+          - generic [ref=f3e131]:
+            - heading "Gate Status" [level=3] [ref=f3e132]
+            - generic [ref=f3e133]:
+              - generic [ref=f3e134]:
+                - generic [ref=f3e135]: Gate Locked (No Defect)
+                - generic [ref=f3e136] [cursor=pointer]:
+                  - checkbox "Yes" [ref=f3e137]
+                  - generic [ref=f3e138]: "Yes"
+              - generic [ref=f3e139]:
+                - generic [ref=f3e140]: Gate Damaged
+                - generic [ref=f3e141] [cursor=pointer]:
+                  - checkbox "Yes" [ref=f3e142]
+                  - generic [ref=f3e143]: "Yes"
+              - generic [ref=f3e144]:
+                - generic [ref=f3e145]: Gate Other
+                - generic [ref=f3e146] [cursor=pointer]:
+                  - checkbox "Yes" [ref=f3e147]
+                  - generic [ref=f3e148]: "Yes"
+          - generic [ref=f3e149]:
+            - heading "Grounds & Building" [level=3] [ref=f3e150]
+            - generic [ref=f3e151]:
+              - generic [ref=f3e152]:
+                - generic [ref=f3e153]: Long Grass (Semak/Rumput Panjang)
+                - combobox [ref=f3e154]:
+                  - option "— Select —" [selected]
+                  - option "Yes"
+                  - option "No"
+              - generic [ref=f3e155]:
+                - generic [ref=f3e156]: Tree Branches in P.E
+                - combobox [ref=f3e157]:
+                  - option "— Select —" [selected]
+                  - option "Yes"
+                  - option "No"
+              - generic [ref=f3e158]:
+                - generic [ref=f3e159]: Building - Broken Roof
+                - generic [ref=f3e160] [cursor=pointer]:
+                  - checkbox "Yes" [ref=f3e161]
+                  - generic [ref=f3e162]: "Yes"
+              - generic [ref=f3e163]:
+                - generic [ref=f3e164]: Building - Broken Gutter
+                - generic [ref=f3e165] [cursor=pointer]:
+                  - checkbox "Yes" [ref=f3e166]
+                  - generic [ref=f3e167]: "Yes"
+              - generic [ref=f3e168]:
+                - generic [ref=f3e169]: Building - Broken Base
+                - generic [ref=f3e170] [cursor=pointer]:
+                  - checkbox "Yes" [ref=f3e171]
+                  - generic [ref=f3e172]: "Yes"
+              - generic [ref=f3e173]:
+                - generic [ref=f3e174]: Building - Other
+                - generic [ref=f3e175] [cursor=pointer]:
+                  - checkbox "Yes" [ref=f3e176]
+                  - generic [ref=f3e177]: "Yes"
+              - generic [ref=f3e178]:
+                - generic [ref=f3e179]: Cleaning Illegal Ads/Banners
+                - combobox [ref=f3e180]:
+                  - option "— Select —" [selected]
+                  - option "Yes"
+                  - option "No"
+          - generic [ref=f3e181]:
+            - heading "Substation Images" [level=3] [ref=f3e182]
+            - generic [ref=f3e183]:
+              - generic [ref=f3e184]:
+                - generic [ref=f3e185]: Substation Image 1*
+                - button "Choose File" [ref=f3e188] [cursor=pointer]
+              - generic [ref=f3e189]:
+                - generic [ref=f3e190]: Substation Image 2*
+                - button "Choose File" [ref=f3e193] [cursor=pointer]
+              - generic [ref=f3e194]:
+                - generic [ref=f3e195]: Gate Before
+                - button "Choose File" [ref=f3e198] [cursor=pointer]
+              - generic [ref=f3e199]:
+                - generic [ref=f3e200]: Banner Before
+                - button "Choose File" [ref=f3e203] [cursor=pointer]
+              - generic [ref=f3e204]:
+                - generic [ref=f3e205]: Gate During
+                - button "Choose File" [ref=f3e208] [cursor=pointer]
+              - generic [ref=f3e209]:
+                - generic [ref=f3e210]: Banner During
+                - button "Choose File" [ref=f3e213] [cursor=pointer]
+              - generic [ref=f3e214]:
+                - generic [ref=f3e215]: Gate After
+                - button "Choose File" [ref=f3e218] [cursor=pointer]
+              - generic [ref=f3e219]:
+                - generic [ref=f3e220]: Banner After
+                - button "Choose File" [ref=f3e223] [cursor=pointer]
+              - generic [ref=f3e224]:
+                - generic [ref=f3e225]: Long Grass Image
+                - button "Choose File" [ref=f3e228] [cursor=pointer]
+              - generic [ref=f3e229]:
+                - generic [ref=f3e230]: Tree Branches Image
+                - button "Choose File" [ref=f3e233] [cursor=pointer]
+              - generic [ref=f3e234]:
+                - generic [ref=f3e235]: Building Image
+                - button "Choose File" [ref=f3e238] [cursor=pointer]
+              - generic [ref=f3e239]:
+                - generic [ref=f3e240]: Other Image
+                - button "Choose File" [ref=f3e243] [cursor=pointer]
+        - generic [ref=f3e244]:
+          - button "Cancel" [ref=f3e245] [cursor=pointer]
+          - button "Create Record" [ref=f3e246] [cursor=pointer]

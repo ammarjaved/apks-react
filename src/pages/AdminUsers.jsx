@@ -1,11 +1,16 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { userApi } from '../api/users'
+import { teamApi } from '../api/teams'
 import Header from '../components/layout/Header'
 import Modal from '../components/ui/Modal'
+import SearchInput from '../components/ui/SearchInput'
+import { TableCount } from '../components/ui/Pagination'
 import { useAuth } from '../context/AuthContext'
+import { errorMessage } from '../utils/apiError'
 
-const ROLES = ['admin', 'manager', 'qc_officer', 'team_leader', 'surveyor', 'viewer']
+// Fallback only — the real list comes from GET /users/roles.
+const FALLBACK_ROLES = ['admin', 'manager', 'qc_officer', 'team_leader', 'surveyor', 'viewer']
 
 export default function AdminUsers() {
   const { setSidebarOpen } = useOutletContext() || {}
@@ -15,6 +20,8 @@ export default function AdminUsers() {
   const [roles, setRoles] = useState([])
   const [teams, setTeams] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [form, setForm] = useState(emptyForm())
@@ -28,14 +35,16 @@ export default function AdminUsers() {
     return { name: '', email: '', password: '', ba_id: '', zone: '', id_team: '', is_active: true, role_names: ['surveyor'] }
   }
 
+  // GET /users has no `search` param, so the list is fetched once and filtered
+  // locally.
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     setListError('')
     try {
-      const u = await userApi.list()
+      const u = await userApi.list({ page_size: 200 })
       setUsers(u)
     } catch (err) {
-      setListError(err.response?.data?.detail || 'Failed to load users.')
+      setListError(errorMessage(err, 'Failed to load users.'))
     } finally {
       setLoading(false)
     }
@@ -45,8 +54,22 @@ export default function AdminUsers() {
     fetchUsers()
     userApi.listBAs().then(setBas).catch(() => {})
     userApi.listRoles().then(setRoles).catch(() => {})
-    userApi.listTeams().then(setTeams).catch(() => {})
+    teamApi.list({ page_size: 200 }).then(setTeams).catch(() => {})
   }, [fetchUsers])
+
+  const roleNames = useMemo(
+    () => (roles.length ? roles.map((r) => r.role_name) : FALLBACK_ROLES),
+    [roles]
+  )
+
+  const visibleUsers = useMemo(() => {
+    if (!search) return users
+    const needle = search.toLowerCase()
+    return users.filter((u) =>
+      [u.name, u.email, u.zone, ...(u.roles || [])]
+        .some((v) => v && String(v).toLowerCase().includes(needle))
+    )
+  }, [users, search])
 
   const openCreate = () => {
     setEditingUser(null)
@@ -84,20 +107,19 @@ export default function AdminUsers() {
         ba_id: form.ba_id || null,
         zone: form.zone || null,
         id_team: form.id_team || null,
-        role_names: form.role_names,
       }
-      if (!editingUser) payload.password = form.password
 
       if (editingUser) {
+        // UserUpdate carries no roles — they are assigned via a separate call.
         await userApi.update(editingUser.id, { ...payload, is_active: form.is_active })
         if (form.role_names?.length) await userApi.assignRoles(editingUser.id, form.role_names)
       } else {
-        await userApi.create(payload)
+        await userApi.create({ ...payload, password: form.password, role_names: form.role_names })
       }
       setModalOpen(false)
       fetchUsers()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to save user.')
+      setError(errorMessage(err, 'Failed to save user.'))
     } finally {
       setSaving(false)
     }
@@ -137,17 +159,25 @@ export default function AdminUsers() {
         title="User Management"
         subtitle="Create and manage user accounts"
         onMenuClick={() => setSidebarOpen?.(true)}
-        actions={
-          <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
+      />
+
+      <div className="flex-1 overflow-auto p-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <SearchInput
+            value={searchInput}
+            onChange={setSearchInput}
+            onSearch={setSearch}
+            placeholder="Search name, email, zone…"
+            className="max-w-sm"
+          />
+          <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5 flex-shrink-0">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             New User
           </button>
-        }
-      />
+        </div>
 
-      <div className="flex-1 overflow-auto p-6">
         {listError && (
           <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
             {listError}
@@ -174,7 +204,7 @@ export default function AdminUsers() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {users.map((u) => (
+                {visibleUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-gray-50">
                     <td className="table-td font-medium">{u.name}</td>
                     <td className="table-td text-gray-600">{u.email}</td>
@@ -202,7 +232,12 @@ export default function AdminUsers() {
                 ))}
               </tbody>
             </table>
-            {users.length === 0 && <p className="text-center text-gray-400 py-8">No users found.</p>}
+            {visibleUsers.length === 0 && <p className="text-center text-gray-400 py-8">No users found.</p>}
+            {visibleUsers.length > 0 && (
+              <div className="px-4 py-3 border-t border-gray-200">
+                <TableCount total={visibleUsers.length} noun="users" />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -257,7 +292,7 @@ export default function AdminUsers() {
           <div>
             <label className="label">Roles</label>
             <div className="flex flex-wrap gap-2">
-              {ROLES.map((role) => (
+              {roleNames.map((role) => (
                 <button
                   key={role}
                   type="button"

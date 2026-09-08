@@ -1,0 +1,160 @@
+- generic [ref=f3e5]:
+  - complementary [ref=f3e6]:
+    - generic [ref=f3e7]:
+      - img "APKS" [ref=f3e8]
+      - generic [ref=f3e9]:
+        - paragraph [ref=f3e10]: APKS
+        - paragraph [ref=f3e11]: Inspection System
+    - navigation [ref=f3e12]:
+      - link "Dashboard" [ref=f3e13] [cursor=pointer]:
+        - /url: /apks
+      - paragraph [ref=f3e17]: Inspections
+      - link [ref=f3e18] [cursor=pointer]:
+        - /url: /apks/savr
+        - paragraph [ref=f3e22]: SAVR
+      - link [ref=f3e23] [cursor=pointer]:
+        - /url: /apks/substation
+        - paragraph [ref=f3e27]: Substation
+      - link [ref=f3e28] [cursor=pointer]:
+        - /url: /apks/feeder_pillar
+        - paragraph [ref=f3e32]: Feeder Pillar
+      - link [ref=f3e33] [cursor=pointer]:
+        - /url: /apks/link_box
+        - paragraph [ref=f3e37]: Link Box
+      - link [ref=f3e38] [cursor=pointer]:
+        - /url: /apks/cable_bridge
+        - paragraph [ref=f3e42]: Cable Bridge
+      - link [ref=f3e43] [cursor=pointer]:
+        - /url: /apks/arus
+        - paragraph [ref=f3e47]: Arus
+      - link [ref=f3e48] [cursor=pointer]:
+        - /url: /apks/height_clearance
+        - paragraph [ref=f3e52]: Height Clearance
+      - link [ref=f3e53] [cursor=pointer]:
+        - /url: /apks/ffw
+        - paragraph [ref=f3e57]: FFW
+      - paragraph [ref=f3e59]: Map
+      - link "Map Overview" [ref=f3e60] [cursor=pointer]:
+        - /url: /apks/map
+      - paragraph [ref=f3e64]: Admin
+      - link "User Management" [ref=f3e65] [cursor=pointer]:
+        - /url: /apks/users
+      - link "Team Management" [ref=f3e68] [cursor=pointer]:
+        - /url: /apks/teams
+    - generic [ref=f3e71]:
+      - generic [ref=f3e72]:
+        - generic [ref=f3e73]: R
+        - generic [ref=f3e74]:
+          - paragraph [ref=f3e75]: rahim
+          - paragraph [ref=f3e76]: admin
+      - button "Sign Out" [ref=f3e77] [cursor=pointer]
+  - main [ref=f3e79]:
+    - generic [ref=f3e80]:
+      - generic [ref=f3e82]:
+        - button [ref=f3e83] [cursor=pointer]
+        - generic [ref=f3e86]:
+          - heading "Substation" [level=1] [ref=f3e87]
+          - paragraph [ref=f3e88]: Pencawang (PE) Inspection
+      - generic [ref=f3e339]:
+        - generic [ref=f3e340]:
+          - generic [ref=f3e341]:
+            - generic [ref=f3e342]:
+              - textbox "Search Substation…" [ref=f3e344]
+              - generic [ref=f3e345]:
+                - generic [ref=f3e346]: Cycle
+                - spinbutton [ref=f3e347]: "1"
+              - generic [ref=f3e348]:
+                - generic [ref=f3e349]: QA Status
+                - combobox [ref=f3e350]:
+                  - option "All" [selected]
+                  - option "Pending"
+                  - option "Accepted"
+                  - option "Rejected"
+              - generic [ref=f3e351]:
+                - generic [ref=f3e352]: Updated After
+                - textbox [ref=f3e353]
+            - button "New Substation" [ref=f3e354] [cursor=pointer]
+          - table [ref=f3e358]:
+            - rowgroup [ref=f3e359]:
+              - row [ref=f3e360]:
+                - columnheader "Name" [ref=f3e361]
+                - columnheader "FL" [ref=f3e362]
+                - columnheader "Voltage" [ref=f3e363]
+                - columnheader "Type" [ref=f3e364]
+                - columnheader "Defects" [ref=f3e365]
+                - columnheader "QA" [ref=f3e366]
+                - columnheader "Updated" [ref=f3e367]
+                - columnheader "Actions" [ref=f3e368]
+            - rowgroup [ref=f3e369]:
+              - row [ref=f3e370] [cursor=pointer]:
+                - cell "Test nama" [ref=f3e371]
+                - cell "Test fl" [ref=f3e373]
+                - cell "11kv" [ref=f3e375]
+                - cell "Padat" [ref=f3e377]
+                - cell "10" [ref=f3e379]
+                - cell [ref=f3e381]
+                - cell "8/3/2026" [ref=f3e384]
+                - cell [ref=f3e385]:
+                  - button "View" [ref=f3e386]
+              - row [ref=f3e387] [cursor=pointer]:
+                - cell "Test 2" [ref=f3e388]
+                - cell "Test 2" [ref=f3e390]
+                - cell "33kv" [ref=f3e392]
+                - cell "Indoor" [ref=f3e394]
+                - cell "7" [ref=f3e396]
+                - cell [ref=f3e398]
+                - cell "8/3/2026" [ref=f3e401]
+                - cell [ref=f3e402]:
+                  - button "View" [ref=f3e403]
+              - row [ref=f3e404] [cursor=pointer]:
+                - cell "VERIFY-NAME" [ref=f3e405]
+                - cell "VERIFY-FL" [ref=f3e407]
+                - cell "—" [ref=f3e409]
+                - cell "—" [ref=f3e410]
+                - cell "0" [ref=f3e411]
+                - cell [ref=f3e413]
+                - cell "8/3/2026" [ref=f3e416]
+                - cell [ref=f3e417]:
+                  - button "View" [ref=f3e418]
+          - generic [ref=f3e419]:
+            - paragraph [ref=f3e420]: Page 1 of 1
+            - generic [ref=f3e421]:
+              - button "Previous" [disabled] [ref=f3e422]
+              - button "Next" [disabled] [ref=f3e423]
+        - generic [ref=f3e424]:
+          - generic [ref=f3e425]:
+            - heading "Substation Map" [level=3] [ref=f3e426]
+            - generic [ref=f3e427]: 3 records
+          - generic [ref=f3e428]:
+            - generic [ref=f3e429]:
+              - region "Map" [ref=f3e430]
+              - generic:
+                - generic [ref=f3e431]:
+                  - button "Zoom in" [ref=f3e432] [cursor=pointer]
+                  - button "Zoom out" [ref=f3e434] [cursor=pointer]
+                  - button "Reset bearing to north" [ref=f3e436]
+                - generic: 5 km
+                - group [ref=f3e439]:
+                  - generic "Toggle attribution" [ref=f3e440] [cursor=pointer]
+                  - generic [ref=f3e441]:
+                    - text: © Esri |
+                    - link "MapLibre" [ref=f3e442] [cursor=pointer]:
+                      - /url: https://maplibre.org/
+            - generic [ref=f3e443]:
+              - button "Satellite" [ref=f3e444] [cursor=pointer]
+              - button "Street" [ref=f3e445] [cursor=pointer]
+            - generic [ref=f3e446]:
+              - paragraph [ref=f3e447]: Layers
+              - generic [ref=f3e448] [cursor=pointer]:
+                - checkbox "Substation Points" [checked] [ref=f3e449]
+                - generic [ref=f3e450]: Substation Points
+              - generic [ref=f3e451] [cursor=pointer]:
+                - checkbox "BA Boundaries" [checked] [ref=f3e452]
+                - generic [ref=f3e453]: BA Boundaries
+            - generic [ref=f3e454]:
+              - button "Legend" [ref=f3e455] [cursor=pointer]
+              - generic [ref=f3e459]:
+                - generic [ref=f3e460]: Accepted
+                - generic [ref=f3e463]: Pending
+                - generic [ref=f3e466]: Rejected
+                - generic [ref=f3e469]: Unsurveyed

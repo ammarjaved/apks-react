@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { teamApi } from '../api/teams'
 import { userApi } from '../api/users'
 import Header from '../components/layout/Header'
 import Modal from '../components/ui/Modal'
+import SearchInput from '../components/ui/SearchInput'
+import { TableCount } from '../components/ui/Pagination'
 import { useAuth } from '../context/AuthContext'
+import { errorMessage } from '../utils/apiError'
 
 export default function AdminTeams() {
   const { setSidebarOpen } = useOutletContext() || {}
@@ -13,6 +16,8 @@ export default function AdminTeams() {
   const [bas, setBas] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTeam, setEditingTeam] = useState(null)
   const [form, setForm] = useState(emptyForm())
@@ -26,14 +31,16 @@ export default function AdminTeams() {
     return { team_name: '', ba_id: '', zone: '', leader_id: '', is_active: true }
   }
 
+  // GET /teams has no `search` param, so the list is fetched once and filtered
+  // locally.
   const fetchTeams = useCallback(async () => {
     setLoading(true)
     setListError('')
     try {
-      const t = await teamApi.list()
+      const t = await teamApi.list({ page_size: 200 })
       setTeams(t)
     } catch (err) {
-      setListError(err.response?.data?.detail || 'Failed to load teams.')
+      setListError(errorMessage(err, 'Failed to load teams.'))
     } finally {
       setLoading(false)
     }
@@ -42,8 +49,16 @@ export default function AdminTeams() {
   useEffect(() => {
     fetchTeams()
     userApi.listBAs().then(setBas).catch(() => {})
-    userApi.list({ page_size: 100 }).then(setUsers).catch(() => {})
+    userApi.list({ page_size: 200 }).then(setUsers).catch(() => {})
   }, [fetchTeams])
+
+  const visibleTeams = useMemo(() => {
+    if (!search) return teams
+    const needle = search.toLowerCase()
+    return teams.filter((t) =>
+      [t.team_name, t.zone].some((v) => v && String(v).toLowerCase().includes(needle))
+    )
+  }, [teams, search])
 
   const openCreate = () => {
     setEditingTeam(null)
@@ -76,17 +91,17 @@ export default function AdminTeams() {
         ba_id: form.ba_id || null,
         zone: form.zone || null,
         leader_id: form.leader_id || null,
-        is_active: form.is_active,
       }
       if (editingTeam) {
-        await teamApi.update(editingTeam.id, payload)
+        // `is_active` only exists on TeamUpdate, not TeamCreate.
+        await teamApi.update(editingTeam.id, { ...payload, is_active: form.is_active })
       } else {
         await teamApi.create(payload)
       }
       setModalOpen(false)
       fetchTeams()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to save team.')
+      setError(errorMessage(err, 'Failed to save team.'))
     } finally {
       setSaving(false)
     }
@@ -98,7 +113,7 @@ export default function AdminTeams() {
       await teamApi.delete(team.id)
       fetchTeams()
     } catch (err) {
-      setListError(err.response?.data?.detail || 'Failed to delete team.')
+      setListError(errorMessage(err, 'Failed to delete team.'))
     }
   }
 
@@ -124,17 +139,25 @@ export default function AdminTeams() {
         title="Team Management"
         subtitle="Create and manage field teams"
         onMenuClick={() => setSidebarOpen?.(true)}
-        actions={
-          <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
+      />
+
+      <div className="flex-1 overflow-auto p-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <SearchInput
+            value={searchInput}
+            onChange={setSearchInput}
+            onSearch={setSearch}
+            placeholder="Search team name, zone…"
+            className="max-w-sm"
+          />
+          <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5 flex-shrink-0">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             New Team
           </button>
-        }
-      />
+        </div>
 
-      <div className="flex-1 overflow-auto p-6">
         {listError && (
           <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
             {listError}
@@ -159,7 +182,7 @@ export default function AdminTeams() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {teams.map((t) => (
+                {visibleTeams.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50">
                     <td className="table-td font-medium">{t.team_name}</td>
                     <td className="table-td">{baName(t.ba_id)}</td>
@@ -179,7 +202,12 @@ export default function AdminTeams() {
                 ))}
               </tbody>
             </table>
-            {teams.length === 0 && <p className="text-center text-gray-400 py-8">No teams found.</p>}
+            {visibleTeams.length === 0 && <p className="text-center text-gray-400 py-8">No teams found.</p>}
+            {visibleTeams.length > 0 && (
+              <div className="px-4 py-3 border-t border-gray-200">
+                <TableCount total={visibleTeams.length} noun="teams" />
+              </div>
+            )}
           </div>
         )}
       </div>

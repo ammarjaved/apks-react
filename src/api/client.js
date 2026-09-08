@@ -60,7 +60,10 @@ client.interceptors.response.use(
         failedQueue = []
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
-        window.location.href = '/login'
+        localStorage.removeItem('user')
+        // Routes live in the hash, so only the fragment changes — this keeps
+        // the redirect correct no matter which folder the app is served from.
+        window.location.hash = '#/login'
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

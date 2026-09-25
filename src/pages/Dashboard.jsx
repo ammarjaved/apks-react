@@ -688,7 +688,7 @@ function defectLabelMap(survey) {
   for (const section of sections) {
     for (const field of section.fields || []) {
       if (field.hidden || field.name?.endsWith('_desc')) continue
-      if (field.name === 'gate_locked' || field.name === 'is_surveyed' || field.name === 'main_line_service') continue
+      if (['gate_locked', 'is_surveyed', 'main_line', 'main_line_service', 'comply'].includes(field.name)) continue
       if (field.type === 'checkbox' || field.type === 'select') map[field.name] = field.label
     }
   }

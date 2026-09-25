@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import { surveyApi } from '../../api/surveys'
+import { imageUrl } from '../../utils/imageUrl'
+import { useAuth } from '../../context/AuthContext'
 
 const TILE_SERVER = import.meta.env.VITE_TILE_URL || '/api/v1/tiles'
 
@@ -10,6 +12,20 @@ const QA_COLORS = {
   Pending: '#eab308',
   None: '#9ca3af',
 }
+// Substation the surveyor could not get into. Survey tiles carry `kiv_status`
+// and report survey_status "kiv"; either paints the point black over its QA colour.
+const KIV_COLOR = '#111827'
+const SURVEY_POINT_COLOR = [
+  'case',
+  ['any', ['==', ['get', 'kiv_status'], true], ['==', ['get', 'survey_status'], 'kiv']], KIV_COLOR,
+  [
+    'match', ['get', 'qa_status'],
+    'Accept', QA_COLORS.Accept,
+    'Reject', QA_COLORS.Reject,
+    'Pending', QA_COLORS.Pending,
+    QA_COLORS.None,
+  ],
+]
 
 const GLYPHS_URL = 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf'
 
@@ -30,6 +46,20 @@ const SUBSTATION_COLOR = '#7c3aed'
 const SAVR_TABLE = 'tbl_savr'
 const SAVR_COLOR = '#2563eb'
 
+// Feeder pillars sit on the LV network between the substation and the poles,
+// so a pole surveyor uses them as the next landmark after the substation.
+// Offered on every map except the Feeder Pillar map itself; on by default for
+// SAVR. Colour is the Feeder Pillar module's (see surveyConfigs.js).
+const FEEDER_PILLAR_TABLE = 'tbl_feeder_pillar'
+const FEEDER_PILLAR_COLOR = '#ea580c'
+
+// Module names for the popup hint on a context-layer point.
+const CONTEXT_MODULE_LABEL = {
+  tbl_substation: 'Substation',
+  tbl_savr: 'SAVR',
+  tbl_feeder_pillar: 'Feeder Pillar',
+}
+
 // Maps the tile layer's `table_name` onto the survey route slug.
 const ENDPOINT_BY_TABLE = {
   tbl_savr: 'savr',
@@ -41,7 +71,7 @@ const ENDPOINT_BY_TABLE = {
   tbl_height_clerance: 'height-clearance',
 }
 
-function buildStyle(surveyTileUrl, baTileUrl, wpTileUrl, substationTileUrl, savrTileUrl) {
+function buildStyle(surveyTileUrl, baTileUrl, wpTileUrl, substationTileUrl, savrTileUrl, feederPillarTileUrl) {
   return {
     version: 8,
     glyphs: GLYPHS_URL,
@@ -88,6 +118,13 @@ function buildStyle(surveyTileUrl, baTileUrl, wpTileUrl, substationTileUrl, savr
         tileSize: 512,
         promoteId: 'geometry_id',
       },
+      // And to the feeder pillar table.
+      'feeder-pillar-points': {
+        type: 'vector',
+        tiles: [feederPillarTileUrl],
+        tileSize: 512,
+        promoteId: 'geometry_id',
+      },
     },
     layers: [
       // Base raster layer (satellite) — visible by default
@@ -128,6 +165,19 @@ function buildStyle(surveyTileUrl, baTileUrl, wpTileUrl, substationTileUrl, savr
         },
         layout: { visibility: 'none' },
       },
+      // Feeder pillar context overlay, same rules as the substation one. Orange
+      // with a dark ring so it reads apart from the substation and pole markers.
+      {
+        id: 'feeder-pillar-points', type: 'circle', source: 'feeder-pillar-points', 'source-layer': 'survey_points',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 3.5, 12, 6, 16, 9],
+          'circle-color': FEEDER_PILLAR_COLOR,
+          'circle-stroke-color': '#7c2d12',
+          'circle-stroke-width': 2,
+          'circle-opacity': 0.95,
+        },
+        layout: { visibility: 'none' },
+      },
       // Pole context overlay, same rules as the substation one: below the survey
       // points, hidden until the layer toggle switches it on. Drawn a little
       // smaller so it reads as background rather than as the working set.
@@ -161,13 +211,7 @@ function buildStyle(surveyTileUrl, baTileUrl, wpTileUrl, substationTileUrl, savr
         id: 'survey-points', type: 'circle', source: 'survey-points', 'source-layer': 'survey_points',
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 3, 12, 6, 16, 10],
-          'circle-color': [
-            'match', ['get', 'qa_status'],
-            'Accept', QA_COLORS.Accept,
-            'Reject', QA_COLORS.Reject,
-            'Pending', QA_COLORS.Pending,
-            QA_COLORS.None,
-          ],
+          'circle-color': SURVEY_POINT_COLOR,
           'circle-stroke-color': '#ffffff',
           'circle-stroke-width': 1.5,
           'circle-opacity': 0.9,
@@ -181,13 +225,7 @@ function buildStyle(surveyTileUrl, baTileUrl, wpTileUrl, substationTileUrl, savr
         filter: ['==', ['get', 'geometry_id'], NO_POINT],
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 4, 12, 7, 16, 11],
-          'circle-color': [
-            'match', ['get', 'qa_status'],
-            'Accept', QA_COLORS.Accept,
-            'Reject', QA_COLORS.Reject,
-            'Pending', QA_COLORS.Pending,
-            QA_COLORS.None,
-          ],
+          'circle-color': SURVEY_POINT_COLOR,
           'circle-stroke-color': '#ffffff',
           'circle-stroke-width': 2.5,
           'circle-opacity': 1,
@@ -208,15 +246,28 @@ export default function MapView({
   highlightGeometryId = null,
   /** `[lng, lat]` of the highlighted record, used as a fallback marker. */
   highlightCoords = null,
+  /**
+   * Show the highlighted point as a marker the user can drag to move it.
+   * Used by the edit form so an asset recorded at the wrong spot can be
+   * corrected without re-dropping it from scratch.
+   */
+  draggableMarker = false,
+  /** Called with `{ lng, lat }` when the draggable marker is let go. */
+  onMarkerDragEnd,
   onWorkpackageClick,
   initialCenter = [101.55, 3.05],
   initialZoom = 10,
   height = 500,
 }) {
+  const { isTnb } = useAuth()
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const dropMarkerRef = useRef(null)
   const highlightMarkerRef = useRef(null)
+  const onMarkerDragEndRef = useRef(onMarkerDragEnd)
+  // Set while the marker is being dragged, so the effect that re-runs on the
+  // new coordinates does not yank the map back to centre under the user.
+  const markerDraggedRef = useRef(false)
   const baIdRef = useRef(baId)
   const filtersRef = useRef(filters)
   const dropModeRef = useRef(dropMode)
@@ -229,19 +280,27 @@ export default function MapView({
   // is where a surveyor actually needs the substation as a reference.
   const showSubstationLayer =
     Boolean(surveyConfig?.tableName) && surveyConfig.tableName !== SUBSTATION_TABLE
-  // Same idea for poles, on every map but SAVR's own. On by default where the
-  // record is defined in terms of poles — height clearance spans two of them, so
-  // the surveyor cannot place the pin without seeing them.
+  // Same idea for poles, on every map but SAVR's own and the Substation and
+  // Feeder Pillar maps, where hundreds of poles only clutter the view. On by
+  // default where the record is defined in terms of poles — height clearance
+  // spans two of them, so the surveyor cannot place the pin without seeing them.
   const showSavrLayer =
-    Boolean(surveyConfig?.tableName) && surveyConfig.tableName !== SAVR_TABLE
+    Boolean(surveyConfig?.tableName)
+    && ![SAVR_TABLE, SUBSTATION_TABLE, FEEDER_PILLAR_TABLE].includes(surveyConfig.tableName)
+  // Feeder pillars: every map but their own, on by default for SAVR.
+  const showFeederPillarLayer =
+    Boolean(surveyConfig?.tableName) && surveyConfig.tableName !== FEEDER_PILLAR_TABLE
   const [layersVisible, setLayersVisible] = useState({
     survey: true,
     ba: true,
     wp: true,
     substation: surveyConfig?.tableName === SAVR_TABLE,
     savr: Boolean(surveyConfig?.savrIdFrom) || surveyConfig?.tableName === 'tbl_ffw',
+    feederPillar: surveyConfig?.tableName === SAVR_TABLE,
   })
-  const [legendOpen, setLegendOpen] = useState(true)
+  // Both panels start collapsed so they do not cover the map on small screens.
+  const [layersOpen, setLayersOpen] = useState(false)
+  const [legendOpen, setLegendOpen] = useState(false)
 
   // The map's click handler is registered once, so props it depends on are read
   // through refs to avoid a stale closure on the first render.
@@ -258,6 +317,10 @@ export default function MapView({
   }, [dropMode])
 
   useEffect(() => {
+    onMarkerDragEndRef.current = onMarkerDragEnd
+  }, [onMarkerDragEnd])
+
+  useEffect(() => {
     onWorkpackageClickRef.current = onWorkpackageClick
   }, [onWorkpackageClick])
 
@@ -268,6 +331,11 @@ export default function MapView({
   useEffect(() => {
     surveyConfigRef.current = surveyConfig
   }, [surveyConfig])
+
+  // A TNB viewer only ever sees accepted records, on every survey layer —
+  // including the landmark overlays that otherwise ignore the page's filters.
+  // Survey tiles are unauthenticated, so this has to be asked for in the URL.
+  const acceptOnlyParams = () => (isTnb ? { qa_status: 'Accept' } : {})
 
   // Build tile URLs
   const buildQueryString = (params) => {
@@ -280,7 +348,7 @@ export default function MapView({
   }
 
   const getSurveyTileUrl = () => {
-    const params = {}
+    const params = acceptOnlyParams()
     // Height clearance (and similar) paint parent poles instead of their own pins.
     const tileTable = surveyConfig?.mapTableName || surveyConfig?.tableName
     if (tileTable) params.table_name = tileTable
@@ -305,7 +373,7 @@ export default function MapView({
   // The overlay is a landmark, not the working set, so it carries only the BA
   // scope — the page's cycle / QA filters would blank most substations out.
   const getSubstationTileUrl = () => {
-    const params = { table_name: SUBSTATION_TABLE }
+    const params = { table_name: SUBSTATION_TABLE, ...acceptOnlyParams() }
     if (baId) params.ba_id = baId
     return `${TILE_SERVER}/survey/{z}/{x}/{y}.pbf${buildQueryString(params)}`
   }
@@ -313,7 +381,13 @@ export default function MapView({
   // Landmark scope again: BA only, so the page's cycle / QA filters do not blank
   // out the poles the surveyor is trying to line the pin up with.
   const getSavrTileUrl = () => {
-    const params = { table_name: SAVR_TABLE }
+    const params = { table_name: SAVR_TABLE, ...acceptOnlyParams() }
+    if (baId) params.ba_id = baId
+    return `${TILE_SERVER}/survey/{z}/{x}/{y}.pbf${buildQueryString(params)}`
+  }
+
+  const getFeederPillarTileUrl = () => {
+    const params = { table_name: FEEDER_PILLAR_TABLE, ...acceptOnlyParams() }
     if (baId) params.ba_id = baId
     return `${TILE_SERVER}/survey/{z}/{x}/{y}.pbf${buildQueryString(params)}`
   }
@@ -335,7 +409,7 @@ export default function MapView({
     // Clear any leftover maplibre internals from StrictMode double-mount
     el.innerHTML = ''
 
-    const style = buildStyle(getSurveyTileUrl(), getBaTileUrl(), getWpTileUrl(), getSubstationTileUrl(), getSavrTileUrl())
+    const style = buildStyle(getSurveyTileUrl(), getBaTileUrl(), getWpTileUrl(), getSubstationTileUrl(), getSavrTileUrl(), getFeederPillarTileUrl())
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -391,11 +465,25 @@ export default function MapView({
       if (!dropModeRef.current) map.getCanvas().style.cursor = ''
     })
 
+    map.on('click', 'feeder-pillar-points', (e) => {
+      if (dropModeRef.current || !e.features?.[0]) return
+      const hits = map.queryRenderedFeatures(e.point, { layers: ['survey-points'] })
+      if (hits.length) return
+      handlePointClick(e, map)
+    })
+    map.on('mouseenter', 'feeder-pillar-points', () => {
+      if (!dropModeRef.current) map.getCanvas().style.cursor = 'pointer'
+    })
+    map.on('mouseleave', 'feeder-pillar-points', () => {
+      if (!dropModeRef.current) map.getCanvas().style.cursor = ''
+    })
+
     map.on('click', 'workpackage-fill', (e) => {
       if (dropModeRef.current || !e.features?.[0]) return
       const layers = ['survey-points']
       if (map.getLayer('substation-points')) layers.push('substation-points')
       if (map.getLayer('savr-points')) layers.push('savr-points')
+      if (map.getLayer('feeder-pillar-points')) layers.push('feeder-pillar-points')
       const hits = map.queryRenderedFeatures(e.point, { layers })
       if (hits.length) return
       handleWorkpackageClick(e, map)
@@ -436,6 +524,9 @@ export default function MapView({
     }
     if (map.getSource('savr-points')) {
       map.getSource('savr-points').setTiles([getSavrTileUrl()])
+    }
+    if (map.getSource('feeder-pillar-points')) {
+      map.getSource('feeder-pillar-points').setTiles([getFeederPillarTileUrl()])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [surveyConfig?.tableName, surveyConfig?.mapTableName, filters, baId])
@@ -521,7 +612,33 @@ export default function MapView({
     }
 
     const center = [highlightLng, highlightLat]
-    map.easeTo({ center, zoom: Math.max(map.getZoom(), 17), duration: 600 })
+    // Re-centring mid-drag would pull the map out from under the pointer; the
+    // user is already looking at the right place.
+    if (markerDraggedRef.current) markerDraggedRef.current = false
+    else map.easeTo({ center, zoom: Math.max(map.getZoom(), 17), duration: 600 })
+
+    // A draggable marker is the point itself, not a fallback: it is always
+    // shown, on top of the rendered circle, and moving it reports the new
+    // position to the form.
+    if (draggableMarker) {
+      const marker = new maplibregl.Marker({
+        color: surveyConfig?.color || '#2563eb',
+        draggable: true,
+      })
+        .setLngLat(center)
+        .addTo(map)
+      marker.on('dragend', () => {
+        const { lng, lat } = marker.getLngLat()
+        markerDraggedRef.current = true
+        onMarkerDragEndRef.current?.({ lng, lat })
+      })
+      highlightMarkerRef.current = marker
+      return () => {
+        map.off('load', applyFilter)
+        marker.remove()
+        highlightMarkerRef.current = null
+      }
+    }
 
     // A record created moments ago may not be in a cached tile yet. Once the
     // tiles settle, drop a marker only if the point really isn't rendered —
@@ -552,7 +669,7 @@ export default function MapView({
       map.off('load', applyFilter)
       map.off('idle', addFallbackMarker)
     }
-  }, [highlightGeometryId, highlightLng, highlightLat, surveyConfig?.color])
+  }, [highlightGeometryId, highlightLng, highlightLat, surveyConfig?.color, draggableMarker])
 
   // ================================================================
   // Toggle base layer
@@ -572,11 +689,12 @@ export default function MapView({
     if (!map) return
 
     const apply = () => {
-      const map2 = { survey: 'survey-points', ba: 'survey-ba', wp: 'workpackage-line', substation: 'substation-points', savr: 'savr-points' }
+      const map2 = { survey: 'survey-points', ba: 'survey-ba', wp: 'workpackage-line', substation: 'substation-points', savr: 'savr-points', feederPillar: 'feeder-pillar-points' }
       Object.entries(layersVisible).forEach(([k, on]) => {
         let visible = on
         if (k === 'substation') visible = on && showSubstationLayer
         if (k === 'savr') visible = on && showSavrLayer
+        if (k === 'feederPillar') visible = on && showFeederPillarLayer
         const layerId = map2[k]
         if (map.getLayer(layerId)) {
           map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none')
@@ -601,7 +719,7 @@ export default function MapView({
     if (map.isStyleLoaded()) apply()
     else map.once('load', apply)
     return () => map.off('load', apply)
-  }, [layersVisible, showSubstationLayer, showSavrLayer])
+  }, [layersVisible, showSubstationLayer, showSavrLayer, showFeederPillarLayer])
 
   // ================================================================
   // Drop mode
@@ -688,13 +806,45 @@ export default function MapView({
           fl: 'FL', voltage: 'Voltage', size: 'Size', type: 'Type',
         }
         for (const [key, label] of Object.entries(labelMap)) {
-          if (record[key]) summaryItems.push(`<div class="flex justify-between text-xs"><span class="text-gray-500">${label}</span><span class="text-gray-900 font-medium">${record[key]}</span></div>`)
+          // SAVR feeder_involved is a number[]; the other tables' is text.
+          const val = Array.isArray(record[key]) ? record[key].join(', ') : record[key]
+          if (val != null && val !== '') summaryItems.push(`<div class="flex justify-between text-xs"><span class="text-gray-500">${label}</span><span class="text-gray-900 font-medium">${val}</span></div>`)
+        }
+        if (record.kiv_status === true) {
+          summaryItems.push(`<div class="flex justify-between text-xs"><span class="text-gray-500">Access</span><span class="font-medium text-gray-900">KIV — no access</span></div>`)
         }
         if (record.total_defects != null) {
           summaryItems.push(`<div class="flex justify-between text-xs"><span class="text-gray-500">Defects</span><span class="font-medium ${record.total_defects > 0 ? 'text-orange-600' : 'text-green-600'}">${record.total_defects}</span></div>`)
         }
         const imgCount = record.images?.length || 0
         if (imgCount > 0) summaryItems.push(`<div class="flex justify-between text-xs"><span class="text-gray-500">Images</span><span class="text-gray-900 font-medium">${imgCount}</span></div>`)
+
+        // On the maps that use poles as a reference (height clearance, FFW) the
+        // surveyor picks a pole by looking at it, so the pole's photos go in the
+        // popup. Each thumbnail opens the full image in a new tab.
+        const isReferencePole = table_name === 'tbl_savr' && surveyConfigRef.current?.tableName !== 'tbl_savr'
+        // The list endpoint the record came from does not embed images; only
+        // the detail endpoint does, so fetch it for the photos.
+        let poleImages = record.images || []
+        if (isReferencePole && !poleImages.length) {
+          try {
+            const detail = await surveyApi.get(endpoint, record.id)
+            poleImages = detail?.images || []
+          } catch {
+            poleImages = []
+          }
+        }
+        const thumbs = isReferencePole
+          ? poleImages
+              .map((img) => ({ url: imageUrl(img.image_url), code: img.image_type || '' }))
+              .filter((img) => img.url)
+          : []
+        const gallery = thumbs.length
+          ? `<div class="grid grid-cols-3 gap-1 mt-2">${thumbs.map((img) =>
+              `<a href="${img.url}" target="_blank" rel="noopener" title="${img.code}" class="block aspect-square overflow-hidden rounded border border-gray-200 bg-gray-100">
+                 <img src="${img.url}" alt="${img.code}" loading="lazy" class="w-full h-full object-cover" />
+               </a>`).join('')}</div>`
+          : ''
 
         // The host page opens records of its own type (SurveyModule) or routes
         // by table (Map Overview); a context-layer point belongs to neither, so
@@ -706,11 +856,11 @@ export default function MapView({
         const ownsRecord = !cfg?.tableName || cfg.tableName === table_name || attachToThisPole
         const canOpen = ownsRecord && onPointSelectRef.current
         const actionLabel = attachToThisPole ? 'Open Height Clearance' : 'View Full Details'
-        loadingEl.outerHTML = `<div class="space-y-1.5">${summaryItems.join('')}</div>` + (canOpen
+        loadingEl.outerHTML = `<div class="space-y-1.5">${summaryItems.join('')}</div>` + gallery + (canOpen
           ? `<button id="popup-view-${record.id}" class="btn-primary btn-sm w-full mt-3">${actionLabel}</button>`
           : ownsRecord
             ? ''
-            : `<p class="text-xs text-gray-400 mt-3">Open the Substation module to edit this record.</p>`)
+            : `<p class="text-xs text-gray-400 mt-3">Open the ${CONTEXT_MODULE_LABEL[table_name] || 'matching'} module to edit this record.</p>`)
       } else {
         loadingEl.outerHTML = `<p class="text-sm text-gray-500">ID: ${geometryId?.substring(0, 8)}...</p>`
       }
@@ -788,14 +938,21 @@ export default function MapView({
       </div>
 
       {/* Layer toggles */}
-      <div className="absolute top-3 right-14 bg-white rounded-lg shadow-md p-3 z-10 space-y-1.5 min-w-[140px]">
-        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Layers</p>
-        {[
+      <div className={`absolute top-3 right-14 bg-white rounded-lg shadow-md p-3 z-10 ${layersOpen ? 'space-y-1.5 min-w-[140px]' : ''}`}>
+        <button onClick={() => setLayersOpen(!layersOpen)}
+          className={`flex items-center justify-between w-full gap-2 ${layersOpen ? 'mb-1' : ''}`}>
+          <span className="text-xs font-semibold text-gray-500 uppercase">Layers</span>
+          <svg className={`w-3 h-3 text-gray-400 transition-transform ${layersOpen ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {layersOpen && [
           { key: 'survey', label: surveyConfig?.mapLayerLabel || `${surveyConfig?.title || 'Survey'} Points` },
           { key: 'ba', label: 'BA Boundaries' },
           { key: 'wp', label: 'Work Packages' },
           ...(showSubstationLayer ? [{ key: 'substation', label: 'Substations' }] : []),
           ...(showSavrLayer ? [{ key: 'savr', label: 'Poles (reference)' }] : []),
+          ...(showFeederPillarLayer ? [{ key: 'feederPillar', label: 'Feeder Pillars' }] : []),
         ].map((layer) => (
           <label key={layer.key} className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={layersVisible[layer.key]}
@@ -809,7 +966,7 @@ export default function MapView({
       {/* Legend */}
       <div className="absolute bottom-8 left-3 bg-white rounded-lg shadow-md p-3 z-10">
         <button onClick={() => setLegendOpen(!legendOpen)}
-          className="flex items-center justify-between w-full gap-2 mb-1">
+          className={`flex items-center justify-between w-full gap-2 ${legendOpen ? 'mb-1' : ''}`}>
           <span className="text-xs font-semibold text-gray-500 uppercase">Legend</span>
           <svg className={`w-3 h-3 text-gray-400 transition-transform ${legendOpen ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -822,15 +979,21 @@ export default function MapView({
               { label: 'Pending', color: QA_COLORS.Pending },
               { label: 'Rejected', color: QA_COLORS.Reject },
               { label: 'Unsurveyed', color: QA_COLORS.None },
+              ...(surveyConfig?.tableName === SUBSTATION_TABLE
+                ? [{ label: 'KIV (no access)', color: KIV_COLOR }]
+                : []),
               ...(showSavrLayer && layersVisible.savr
                 ? [{ label: 'Pole (reference)', color: SAVR_COLOR }]
                 : []),
               ...(showSubstationLayer && layersVisible.substation
                 ? [{ label: 'Substation', color: SUBSTATION_COLOR }]
                 : []),
+              ...(showFeederPillarLayer && layersVisible.feederPillar
+                ? [{ label: 'Feeder Pillar', color: FEEDER_PILLAR_COLOR, square: true }]
+                : []),
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2">
-                <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: item.color }} />
+                <span className={`inline-block w-2.5 h-2.5 ${item.square ? 'rounded-sm' : 'rounded-full'}`} style={{ background: item.color }} />
                 <span className="text-xs text-gray-700">{item.label}</span>
               </div>
             ))}

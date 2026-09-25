@@ -8,10 +8,10 @@ import { useAuth } from '../context/AuthContext'
 export default function MapOverview() {
   const { setSidebarOpen } = useOutletContext() || {}
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, isTnb } = useAuth()
   const userBaId = user?.is_admin ? null : user?.ba_id
   const [selectedType, setSelectedType] = useState('all')
-  const [filters, setFilters] = useState({ cycle: 1, qa_status: '' })
+  const [filters, setFilters] = useState({ cycle: 1, qa_status: isTnb ? 'Accept' : '' })
 
   const surveyConfig =
     selectedType === 'all'
@@ -59,6 +59,7 @@ export default function MapOverview() {
           />
         </div>
 
+        {!isTnb && (
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-600">QA Status:</label>
           <select
@@ -72,6 +73,7 @@ export default function MapOverview() {
             <option value="Reject">Rejected</option>
           </select>
         </div>
+        )}
       </div>
 
       {/* Map */}

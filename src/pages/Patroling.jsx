@@ -42,7 +42,7 @@ function baName(ba) {
 
 export default function Patroling() {
   const { setSidebarOpen } = useOutletContext() || {}
-  const { user, hasRole } = useAuth()
+  const { user, hasRole, isTnb } = useAuth()
 
   const [rows, setRows] = useState([])
   const [pagination, setPagination] = useState(null)
@@ -53,7 +53,8 @@ export default function Patroling() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
-  const [filters, setFilters] = useState({ qa_status: '', cycle: '', date_from: '', date_to: '' })
+  // A TNB viewer only sees accepted runs; the API forces the same.
+  const [filters, setFilters] = useState({ qa_status: isTnb ? 'Accept' : '', cycle: '', date_from: '', date_to: '' })
 
   const [bas, setBas] = useState([])
   const [loading, setLoading] = useState(true)
@@ -66,8 +67,9 @@ export default function Patroling() {
   const [formError, setFormError] = useState('')
   const [lightboxIndex, setLightboxIndex] = useState(null)
 
-  const canReview = hasRole('admin', 'manager', 'qc_officer')
-  const canDelete = hasRole('admin', 'manager')
+  const canEdit = !isTnb
+  const canReview = canEdit && hasRole('admin', 'manager', 'qc_officer')
+  const canDelete = canEdit && hasRole('admin', 'manager')
 
   // Only an admin picks the business area — everyone else records their own, and
   // the API enforces that whatever the form sends.
@@ -220,14 +222,14 @@ export default function Patroling() {
         title="Patrolling"
         subtitle="Patrol routes uploaded as KML"
         onMenuClick={() => setSidebarOpen?.(true)}
-        actions={
+        actions={canEdit && (
           <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             Upload Route
           </button>
-        }
+        )}
       />
 
       <div className="flex-1 overflow-auto p-6 space-y-4">
@@ -291,10 +293,12 @@ export default function Patroling() {
             placeholder="Search work package, BA, zone…"
             className="max-w-sm"
           />
-          <select value={filters.qa_status} onChange={(e) => setFilter('qa_status', e.target.value)} className="input max-w-[10rem]">
-            <option value="">All statuses</option>
-            {['Pending', 'Accept', 'Reject'].map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+          {!isTnb && (
+            <select value={filters.qa_status} onChange={(e) => setFilter('qa_status', e.target.value)} className="input max-w-[10rem]">
+              <option value="">All statuses</option>
+              {['Pending', 'Accept', 'Reject'].map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
           <input type="text" value={filters.cycle} onChange={(e) => setFilter('cycle', e.target.value)} placeholder="Cycle" className="input max-w-[7rem]" />
           <input type="date" value={filters.date_from} onChange={(e) => setFilter('date_from', e.target.value)} className="input max-w-[10rem]" />
           <input type="date" value={filters.date_to} onChange={(e) => setFilter('date_to', e.target.value)} className="input max-w-[10rem]" />
@@ -362,7 +366,9 @@ export default function Patroling() {
                           </span>
                         </td>
                         <td className="table-td text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => openEdit(row)} className="text-primary-600 hover:text-primary-700 text-xs font-medium mr-3">Edit</button>
+                          {canEdit && (
+                            <button onClick={() => openEdit(row)} className="text-primary-600 hover:text-primary-700 text-xs font-medium mr-3">Edit</button>
+                          )}
                           {canReview && row.qa_status !== 'Accept' && (
                             <button onClick={() => handleQa(row, 'Accept')} className="text-green-600 hover:text-green-700 text-xs font-medium mr-3">Accept</button>
                           )}

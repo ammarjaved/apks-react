@@ -10,7 +10,12 @@ import { useAuth } from '../context/AuthContext'
 import { errorMessage } from '../utils/apiError'
 
 // Fallback only — the real list comes from GET /users/roles.
-const FALLBACK_ROLES = ['admin', 'manager', 'qc_officer', 'team_leader', 'surveyor', 'viewer']
+const FALLBACK_ROLES = ['admin', 'manager', 'qc_officer', 'team_leader', 'surveyor', 'viewer', 'tnb']
+
+// Shown under the role buttons so whoever grants it knows what it does.
+const ROLE_HINTS = {
+  tnb: 'TNB viewer — read-only, sees QA-accepted records only, cannot generate or download QR.',
+}
 
 export default function AdminUsers() {
   const { setSidebarOpen } = useOutletContext() || {}
@@ -98,6 +103,8 @@ export default function AdminUsers() {
     setError('')
     if (!form.name || !form.email) { setError('Name and email are required.'); return }
     if (!editingUser && form.password.length < 6) { setError('Password must be at least 6 characters.'); return }
+    // On edit the password is optional: blank keeps the current one.
+    if (editingUser && form.password && form.password.length < 6) { setError('New password must be at least 6 characters.'); return }
 
     setSaving(true)
     try {
@@ -111,7 +118,11 @@ export default function AdminUsers() {
 
       if (editingUser) {
         // UserUpdate carries no roles — they are assigned via a separate call.
-        await userApi.update(editingUser.id, { ...payload, is_active: form.is_active })
+        await userApi.update(editingUser.id, {
+          ...payload,
+          is_active: form.is_active,
+          ...(form.password ? { password: form.password } : {}),
+        })
         if (form.role_names?.length) await userApi.assignRoles(editingUser.id, form.role_names)
       } else {
         await userApi.create({ ...payload, password: form.password, role_names: form.role_names })
@@ -256,10 +267,23 @@ export default function AdminUsers() {
             </div>
           </div>
 
-          {!editingUser && (
+          {editingUser ? (
+            <div>
+              <label className="label">New Password</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className="input"
+                placeholder="Leave blank to keep the current password"
+              />
+              <p className="text-xs text-gray-500 mt-1">Changing it signs the user out of every device.</p>
+            </div>
+          ) : (
             <div>
               <label className="label">Password</label>
-              <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="input" required placeholder="Min 6 characters" />
+              <input type="password" autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="input" required placeholder="Min 6 characters" />
             </div>
           )}
 
@@ -307,6 +331,9 @@ export default function AdminUsers() {
                 </button>
               ))}
             </div>
+            {form.role_names.filter((r) => ROLE_HINTS[r]).map((r) => (
+              <p key={r} className="text-xs text-gray-500 mt-2">{ROLE_HINTS[r]}</p>
+            ))}
           </div>
 
           {editingUser && (

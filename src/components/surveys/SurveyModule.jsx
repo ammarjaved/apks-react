@@ -5,6 +5,7 @@ import StatusBadge from '../ui/StatusBadge'
 import Pagination from '../ui/Pagination'
 import SearchInput from '../ui/SearchInput'
 import MultiSelect from '../ui/MultiSelect'
+import SearchableSelect from '../ui/SearchableSelect'
 import { defectOptions } from '../../config/surveyConfigs'
 import MapView from '../map/MapView'
 import SurveyForm from './SurveyForm'
@@ -32,7 +33,7 @@ async function attachSavrTiangNos(items) {
 }
 
 export default function SurveyModule({ config }) {
-  const { hasRole, user } = useAuth()
+  const { hasRole, user, isTnb } = useAuth()
   const userBaId = user?.is_admin ? null : user?.ba_id
   const [view, setView] = useState(VIEW.LIST)
   const [records, setRecords] = useState([])
@@ -42,13 +43,18 @@ export default function SurveyModule({ config }) {
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState({
     cycle: 1,
-    qa_status: '',
+    // A TNB viewer is pinned to accepted records; the API forces it too.
+    qa_status: isTnb ? 'Accept' : '',
     workpackage_id: '',
     updated_after: '',
     updated_before: '',
     defects: [],
     defects_match: 'any',
+    substation: '',
   })
+  const [substations, setSubstations] = useState([])
+  const substationOptions = useMemo(
+    () => substations.map((name) => ({ value: name, label: name })), [substations])
   const defectChoices = useMemo(() => defectOptions(config), [config])
   const [packages, setPackages] = useState([])
   const [searchInput, setSearchInput] = useState('')
@@ -56,7 +62,10 @@ export default function SurveyModule({ config }) {
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
 
-  const canQA = hasRole('admin', 'qc_officer', 'manager')
+  const canQA = !isTnb && hasRole('admin', 'qc_officer', 'manager')
+  const canEdit = !isTnb
+  // The QA status filter means nothing to someone who only ever sees Accept.
+  const visibleFilters = isTnb ? config.filters.filter((f) => f.name !== 'qa_status') : config.filters
 
   const fetchRecords = useCallback(async () => {
     setLoading(true)
@@ -65,7 +74,13 @@ export default function SurveyModule({ config }) {
       // Free-text search goes to the server (device_id + text columns) so a
       // device id like sub_0019 is found on any page, not just the loaded one.
       const params = { page, page_size: 25 }
-      if (search.trim()) params.search = search.trim()
+      // GET /savr has no substation parameter and fp_name is free text, so the
+      // substation name goes out as `search` (substring over text columns).
+      // The API takes one `search`; typed text then narrows the loaded page.
+      const typed = search.trim()
+      const substation = config.substationFilter ? filters.substation : ''
+      if (substation) params.search = substation
+      else if (typed) params.search = typed
       if (filters.cycle) params.cycle = filters.cycle
       if (filters.qa_status) params.qa_status = filters.qa_status
       if (filters.updated_after) params.updated_after = filters.updated_after
@@ -78,7 +93,12 @@ export default function SurveyModule({ config }) {
       if (userBaId) params.ba_id = userBaId
 
       const data = await surveyApi.list(config.endpoint, params)
-      const items = data.items || []
+      let items = data.items || []
+      if (substation && typed) {
+        const needle = typed.toLowerCase()
+        items = items.filter((r) => Object.values(r).some(
+          (v) => typeof v === 'string' && v.toLowerCase().includes(needle)))
+      }
       await attachSavrTiangNos(items)
       if (packages.length) {
         const names = Object.fromEntries(packages.map((p) => [p.id, p.package_name]))
@@ -102,7 +122,23 @@ export default function SurveyModule({ config }) {
     } finally {
       setLoading(false)
     }
-  }, [config.endpoint, page, filters, search, userBaId, packages])
+  }, [config.endpoint, config.substationFilter, page, filters, search, userBaId, packages])
+
+  useEffect(() => {
+    if (!config.substationFilter) return
+    let cancelled = false
+    const params = { page_size: 1000 }
+    if (userBaId) params.ba_id = userBaId
+    // One row per substation per cycle, so de-duplicate by name.
+    surveyApi.list('substation', params)
+      .then((data) => {
+        const names = [...new Set((data.items || []).map((s) => (s.name || '').trim()).filter(Boolean))]
+        names.sort((a, b) => a.localeCompare(b))
+        if (!cancelled) setSubstations(names)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [config.substationFilter, userBaId])
 
   useEffect(() => {
     const params = { page_size: 200 }
@@ -169,7 +205,10 @@ export default function SurveyModule({ config }) {
         if (existing) {
           const full = await surveyApi.get(config.endpoint, existing.id)
           setSelectedRecord(full)
-          setView(VIEW.EDIT)
+          setView(canEdit ? VIEW.EDIT : VIEW.DETAIL)
+        } else if (!canEdit) {
+          setError('No accepted height clearance record for this pole.')
+          setView(VIEW.LIST)
         } else {
           const pole = await surveyApi.get('savr', pointInfo.record_id)
           setSelectedRecord({
@@ -238,11 +277,36 @@ export default function SurveyModule({ config }) {
     }
   }
 
-  const handleSaveComplete = () => {
-    setView(VIEW.LIST)
-    setSelectedRecord(null)
+  /**
+   * Leaving the form after a save, a QA decision or a cancel.
+   *
+   * An edit came from the record's detail page, so that is where it goes back
+   * to — the reviewer who accepted or rejected one record is usually still
+   * looking at it, and dropping them on the list means finding it again. A
+   * create has no detail page to return to, so it falls back to the list.
+   */
+  const leaveForm = async () => {
+    const editedId = view === VIEW.EDIT ? selectedRecord?.id : null
     fetchRecords()
+    if (!editedId) {
+      setView(VIEW.LIST)
+      setSelectedRecord(null)
+      return
+    }
+    setView(VIEW.DETAIL)
+    setDetailLoading(true)
+    try {
+      setSelectedRecord(await surveyApi.get(config.endpoint, editedId))
+    } catch {
+      // The record is gone or unreadable; the list is the only safe place left.
+      setView(VIEW.LIST)
+      setSelectedRecord(null)
+    } finally {
+      setDetailLoading(false)
+    }
   }
+
+  const handleSaveComplete = leaveForm
 
   if (detailLoading && view !== VIEW.DETAIL) {
     return (
@@ -255,17 +319,14 @@ export default function SurveyModule({ config }) {
   // ================================================================
   // RENDER: CREATE / EDIT
   // ================================================================
-  if (view === VIEW.CREATE || view === VIEW.EDIT) {
+  if ((view === VIEW.CREATE || view === VIEW.EDIT) && canEdit) {
     return (
       <SurveyForm
         config={config}
         record={selectedRecord}
         onSave={handleSaveComplete}
         onQaAction={canQA && view === VIEW.EDIT ? handleQaAction : null}
-        onCancel={() => {
-          setView(VIEW.LIST)
-          setSelectedRecord(null)
-        }}
+        onCancel={leaveForm}
       />
     )
   }
@@ -285,8 +346,8 @@ export default function SurveyModule({ config }) {
       <SurveyDetail
         config={config}
         record={selectedRecord}
-        onEdit={() => setView(VIEW.EDIT)}
-        onDelete={handleDelete}
+        onEdit={canEdit ? () => setView(VIEW.EDIT) : null}
+        onDelete={canEdit ? handleDelete : null}
         onQaAction={canQA ? handleQaAction : null}
         onPointSelect={handlePointSelect}
         onBack={() => {
@@ -300,7 +361,7 @@ export default function SurveyModule({ config }) {
   // ================================================================
   // RENDER: QR (Quality Records)
   // ================================================================
-  if (view === VIEW.QR) {
+  if (view === VIEW.QR && !isTnb) {
     // Hand the panel the same filters the table is showing, plus the BA the
     // user is scoped to, so the workbook holds exactly these records.
     return (
@@ -333,7 +394,7 @@ export default function SurveyModule({ config }) {
               className="w-full sm:w-56"
             />
 
-            {config.filters.map((filter) => (
+            {visibleFilters.map((filter) => (
               <div key={filter.name} className="filter-pill">
                 <label>{filter.label}</label>
                 {filter.type === 'select' ? (
@@ -363,6 +424,21 @@ export default function SurveyModule({ config }) {
                 )}
               </div>
             ))}
+
+            {config.substationFilter && (
+              <div className="filter-pill">
+                <label>Substation</label>
+                <SearchableSelect
+                  options={substationOptions}
+                  value={filters.substation || ''}
+                  placeholder="All"
+                  onChange={(next) => {
+                    setPage(1)
+                    setFilters((prev) => ({ ...prev, substation: next }))
+                  }}
+                />
+              </div>
+            )}
 
             <div className="filter-pill">
               <label>Work Package</label>
@@ -450,6 +526,7 @@ export default function SurveyModule({ config }) {
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {!isTnb && (
             <button
               onClick={() => setView(VIEW.QR)}
               className="btn-secondary btn-sm flex items-center gap-1.5"
@@ -460,7 +537,8 @@ export default function SurveyModule({ config }) {
               </svg>
               QR
             </button>
-            {!config.attachToPole && (
+            )}
+            {!config.attachToPole && canEdit && (
               <button
                 onClick={() => setView(VIEW.CREATE)}
                 className="btn-primary btn-sm flex items-center gap-1.5"
@@ -490,7 +568,7 @@ export default function SurveyModule({ config }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2a4 4 0 014-4h0a4 4 0 014 4v2M7 21h10a2 2 0 002-2v-5a9 9 0 10-18 0v5a2 2 0 002 2z" />
               </svg>
               <p className="text-sm">No {config.title} records found</p>
-              {config.attachToPole ? (
+              {!canEdit ? null : config.attachToPole ? (
                 <p className="text-xs mt-2 max-w-xs text-center">
                   Click a pole on the map to add height clearance for that location.
                 </p>
@@ -552,7 +630,7 @@ export default function SurveyModule({ config }) {
         <div className="mb-2 flex items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-semibold text-gray-700">{config.title} Map</h3>
-            {config.attachToPole && (
+            {config.attachToPole && canEdit && (
               <p className="text-xs text-gray-400 mt-0.5">Click a pole to add or edit height clearance</p>
             )}
           </div>
@@ -585,7 +663,20 @@ function renderCell(col, value, record) {
     return <span className="truncate block max-w-xs">{String(value)}</span>
   }
 
+  // A KIV substation shows its badge; every other one leaves the cell blank.
+  if (col.type === 'kiv') {
+    return value === true
+      ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-900 text-white">KIV</span>
+      : <span className="text-gray-300">—</span>
+  }
+
   if (value == null) return <span className="text-gray-300">—</span>
+  // e.g. SAVR feeder_involved, a number[].
+  if (Array.isArray(value)) {
+    return value.length
+      ? <span className="truncate block max-w-xs">{value.join(', ')}</span>
+      : <span className="text-gray-300">—</span>
+  }
 
   switch (col.type) {
     case 'qa_status':

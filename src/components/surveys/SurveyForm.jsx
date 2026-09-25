@@ -11,6 +11,7 @@ import StatusBadge from '../ui/StatusBadge'
 import { imageUrl } from '../../utils/imageUrl'
 import MapView from '../map/MapView'
 import { useAuth } from '../../context/AuthContext'
+import { defectOptions } from '../../config/surveyConfigs'
 
 export default function SurveyForm({ config, record, onSave, onCancel, onQaAction }) {
   const { user } = useAuth()
@@ -309,6 +310,12 @@ export default function SurveyForm({ config, record, onSave, onCancel, onQaActio
     }
   }
 
+  /**
+   * A new position for the point, from either a click in drop mode or a drag of
+   * the marker. The work package is resolved again from the new coordinates —
+   * moving an asset can move it into a different package, and the record must
+   * not keep the old one.
+   */
   const handleMapClick = ({ lng, lat }) => {
     if (config.attachToPole) return
     handleChange('longitude', lng)
@@ -537,6 +544,15 @@ export default function SurveyForm({ config, record, onSave, onCancel, onQaActio
         }
       }
       for (const step of (isWizard ? config.wizardSteps : [{ sections: config.sections }])) clearHidden(step.sections)
+      // total_defects is a stored column the table badge, map colour and
+      // dashboard read; the API keeps whatever the client sends. Count the
+      // ticked defect fields (same definition as the Defects filter), so
+      // registration data like Daftar Aset on the pole form never adds to it.
+      // Height clearance has no such column on the API.
+      if (config.key !== 'height_clearance') {
+        payload.total_defects = defectOptions(config).reduce(
+          (n, f) => n + (payload[f.value] === true || payload[f.value] === '1' ? 1 : 0), 0)
+      }
       // The parent pole is not a separate question — it is the pole the span
       // starts at. savr_id is NOT NULL, so this is what keeps the record valid
       // without asking the surveyor for the same pole twice.
@@ -915,7 +931,10 @@ export default function SurveyForm({ config, record, onSave, onCancel, onQaActio
                           onChange={isImage ? handleImageChange : handleChange}
                           onImageView={isImage ? openImage : undefined}
                           disabled={field.name === 'savr_id' && config.attachToPole}
-                          context={field.type === 'asset-select' ? {
+                          // The pickers that search by distance need the point
+                          // the record sits at; `savr-select` uses it to offer
+                          // the nearest poles instead of every pole there is.
+                          context={field.type === 'asset-select' || field.type === 'savr-select' ? {
                             latitude: formData.latitude,
                             longitude: formData.longitude,
                             resolved: { from_id: span?.from, to_id: span?.to },
@@ -1021,7 +1040,7 @@ export default function SurveyForm({ config, record, onSave, onCancel, onQaActio
                       ? `Pole: ${formData.latitude.toFixed(6)}, ${formData.longitude.toFixed(6)}${formData.workpackage_name ? ` · ${formData.workpackage_name}` : ''}`
                       : 'Location comes from the selected pole')
                     : (hasGeometry
-                      ? `Location: ${formData.latitude.toFixed(6)}, ${formData.longitude.toFixed(6)}${formData.workpackage_name ? ` · ${formData.workpackage_name}` : wpPreview.unmatched ? ' · outside every work package' : ''}`
+                      ? `Location: ${formData.latitude.toFixed(6)}, ${formData.longitude.toFixed(6)}${formData.workpackage_name ? ` · ${formData.workpackage_name}` : wpPreview.unmatched ? ' · outside every work package' : ''} · drag the marker to move it`
                       : 'Click on the map to place the inspection point')}
                 </p>
               </div>
@@ -1036,6 +1055,11 @@ export default function SurveyForm({ config, record, onSave, onCancel, onQaActio
               baId={formData.ba_id || userBaId}
               height={450}
               highlightCoords={hasGeometry ? [formData.longitude, formData.latitude] : null}
+              // Drag to move the point. Not offered on the pole-attached forms,
+              // whose location belongs to the parent pole, and not while drop
+              // mode is waiting for a click.
+              draggableMarker={hasGeometry && !config.attachToPole && !dropMode}
+              onMarkerDragEnd={handleMapClick}
               initialCenter={hasGeometry ? [formData.longitude, formData.latitude] : undefined}
               initialZoom={hasGeometry ? 16 : 11}
             />

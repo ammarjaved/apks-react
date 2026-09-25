@@ -9,6 +9,7 @@ import MapOverview from './pages/MapOverview'
 import Patroling from './pages/Patroling'
 import AdminUsers from './pages/AdminUsers'
 import AdminTeams from './pages/AdminTeams'
+import AdminProductivity from './pages/AdminProductivity'
 import SurveyPage from './pages/surveys/SurveyPage'
 import { VISIBLE_SURVEY_LIST } from './config/surveyConfigs'
 
@@ -41,6 +42,8 @@ export default function App() {
             <Route path="/users" element={<AdminUsers />} />
 
             <Route path="/teams" element={<AdminTeams />} />
+
+            <Route path="/productivity" element={<AdminProductivity />} />
 
             {VISIBLE_SURVEY_LIST.map((survey) => (
               <Route

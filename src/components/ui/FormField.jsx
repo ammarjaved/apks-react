@@ -7,7 +7,7 @@ import { surveyApi, assetLinkApi } from '../../api/surveys'
 /**
  * Dynamic form field renderer.
  * Supports: text, textarea, number, date, time, select, radio, checkbox,
- * defect-group, span-group, image, savr-select, asset-select
+ * number-list, defect-group, span-group, image, savr-select, asset-select
  */
 
 export default function FormField({ field, value, onChange, error, disabled, onImageView, imageDrag, context }) {
@@ -15,14 +15,25 @@ export default function FormField({ field, value, onChange, error, disabled, onI
     switch (field.type) {
       case 'textarea':
         return (
-          <textarea
-            value={value || ''}
-            onChange={(e) => onChange(field.name, e.target.value)}
-            disabled={disabled}
-            rows={3}
-            className="input"
-          />
+          <div>
+            <textarea
+              value={value || ''}
+              onChange={(e) => onChange(field.name, e.target.value)}
+              disabled={disabled}
+              rows={3}
+              maxLength={field.maxLength || undefined}
+              className="input"
+            />
+            {field.maxLength && (
+              <p className="text-[11px] text-gray-400 text-right mt-0.5">
+                {(value || '').length}/{field.maxLength}
+              </p>
+            )}
+          </div>
         )
+
+      case 'number-list':
+        return <NumberListField field={field} value={value} onChange={onChange} disabled={disabled} />
 
       case 'number':
         return (
@@ -74,25 +85,37 @@ export default function FormField({ field, value, onChange, error, disabled, onI
           </select>
         )
 
-      case 'radio':
+      case 'radio': {
+        // Drawn as checkboxes but answered like a radio: at most one option at a
+        // time, and clicking the ticked one clears it. A true radio group cannot
+        // be unticked, and these questions are optional — a surveyor who picks
+        // the wrong pole size has to be able to take it back.
+        //
+        // The stored value is normalised the same way `select` does it: a value
+        // saved as "Spun" or 9.0 must still tick the `spun` / "9" box instead of
+        // leaving the group blank on edit.
+        const selected = normalizeOptionValue(field.options, value)
         return (
           <div className="flex flex-wrap gap-3">
-            {field.options?.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name={field.name}
-                  value={opt.value}
-                  checked={value === opt.value}
-                  onChange={(e) => onChange(field.name, e.target.value)}
-                  disabled={disabled}
-                  className="border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700">{opt.label}</span>
-              </label>
-            ))}
+            {field.options?.map((opt) => {
+              const isChecked = selected === String(opt.value)
+              return (
+                <label key={opt.value} className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name={`${field.name}_${opt.value}`}
+                    checked={isChecked}
+                    onChange={() => onChange(field.name, isChecked ? null : String(opt.value))}
+                    disabled={disabled}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-gray-700">{opt.label}</span>
+                </label>
+              )
+            })}
           </div>
         )
+      }
 
       case 'checkbox':
         return (
@@ -118,7 +141,15 @@ export default function FormField({ field, value, onChange, error, disabled, onI
         return <ImageField field={field} value={value} onChange={onChange} disabled={disabled} onView={onImageView} imageDrag={imageDrag} />
 
       case 'savr-select':
-        return <SavrSelectField field={field} value={value} onChange={onChange} disabled={disabled} />
+        return (
+          <SavrSelectField
+            field={field}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            context={context}
+          />
+        )
 
       case 'asset-select':
         return (
@@ -209,7 +240,7 @@ function DefectGroupField({ field, value, onChange, disabled }) {
   )
 }
 
-// ─── Span Group: radio per sub-field + number input for "other" ────────
+// ─── Span Group: one count per sub-field + number input for "other" ────
 /**
  * The stored JSON key for a conductor size: the record's own spelling when it
  * already has one (the mobile app writes `3x185`, the web form `s3_185`), else
@@ -227,7 +258,14 @@ function SpanGroupField({ field, value, onChange, disabled }) {
   const current = value || {}
 
   const handleChange = (storeKey, val) => {
-    onChange(field.name, { ...current, [storeKey]: val })
+    const next = { ...current, [storeKey]: val }
+    if (val === null) {
+      // Unticked: drop the size from the JSON entirely, and the "other" count
+      // with it, so the record does not keep a stale value behind a blank box.
+      delete next[storeKey]
+      delete next[`${storeKey}_other`]
+    }
+    onChange(field.name, next)
   }
 
   const handleOtherValue = (storeKey, val) => {
@@ -243,21 +281,27 @@ function SpanGroupField({ field, value, onChange, disabled }) {
         return (
           <div key={sub.key} className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-gray-600 min-w-[100px]">{sub.label}</span>
+            {/* Drawn as checkboxes but answered like a radio: one count per
+                conductor size, and clicking the ticked box clears it so a
+                miscounted span can be taken back. Clearing drops the key from
+                the JSON rather than storing an empty string. */}
             <div className="flex gap-1.5">
-              {['1', '2', '3', '4', '5', '6', 'other'].map((opt) => (
-                <label key={opt} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name={`${field.name}_${sub.key}`}
-                    value={opt}
-                    checked={selected === opt}
-                    onChange={(e) => handleChange(storeKey, e.target.value)}
-                    disabled={disabled}
-                    className="border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-xs text-gray-500 ml-0.5">{opt === 'other' ? 'Other' : opt}</span>
-                </label>
-              ))}
+              {['1', '2', '3', '4', '5', '6', 'other'].map((opt) => {
+                const isChecked = selected === opt
+                return (
+                  <label key={opt} className="cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name={`${field.name}_${sub.key}_${opt}`}
+                      checked={isChecked}
+                      onChange={() => handleChange(storeKey, isChecked ? null : opt)}
+                      disabled={disabled}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-xs text-gray-500 ml-0.5">{opt === 'other' ? 'Other' : opt}</span>
+                  </label>
+                )
+              })}
             </div>
             {selected === 'other' && (
               <input
@@ -462,6 +506,61 @@ function JsonField({ value, onChange, disabled }) {
   )
 }
 
+// ─── Number list: comma-separated numbers stored as an array ─────────
+// e.g. tbl_savr.feeder_involved, which the API takes as number[] | null.
+// The text is kept locally so a half-typed "1234, " is not reparsed away;
+// only a fully valid list is sent up, and an empty box sends null.
+function formatNumberList(value) {
+  if (Array.isArray(value)) return value.join(', ')
+  return value == null ? '' : String(value)
+}
+
+function NumberListField({ field, value, onChange, disabled }) {
+  const [text, setText] = useState(() => formatNumberList(value))
+  const [invalid, setInvalid] = useState('')
+
+  // Follow the record when it is (re)loaded, but not while this box is the
+  // source of the change.
+  useEffect(() => {
+    const incoming = formatNumberList(value)
+    setText((prev) => {
+      const parsed = prev.split(',').map((s) => s.trim()).filter(Boolean).map(Number)
+      return parsed.join(', ') === incoming ? prev : incoming
+    })
+  }, [value])
+
+  const handleChange = (raw) => {
+    setText(raw)
+    const parts = raw.split(',').map((s) => s.trim()).filter(Boolean)
+    const bad = parts.find((p) => !Number.isFinite(Number(p)))
+    if (bad) {
+      setInvalid(`"${bad}" is not a number`)
+      return
+    }
+    setInvalid('')
+    onChange(field.name, parts.length ? parts.map(Number) : null)
+  }
+
+  return (
+    <div>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => handleChange(e.target.value)}
+        disabled={disabled}
+        placeholder={field.placeholder || 'e.g. 1234, 5678'}
+        className="input"
+      />
+      {invalid ? (
+        <p className="text-[11px] text-red-600 mt-0.5">{invalid}</p>
+      ) : (
+        <p className="text-[11px] text-gray-400 mt-0.5">Separate several with commas.</p>
+      )}
+    </div>
+  )
+}
+
 // ─── SAVR Select: fetch SAVR records for parent linkage ──────────────
 const ASSET_TYPE_LABELS = {
   tbl_savr: 'Pole',
@@ -563,45 +662,104 @@ function AssetSelectField({ field, value, onChange, disabled, context }) {
 }
 
 
-function SavrSelectField({ field, value, onChange, disabled }) {
+/** How many of the closest poles the parent picker offers. */
+const NEARBY_SAVR_LIMIT = 10
+const NEARBY_SAVR_RADIUS_M = 1000
+
+/**
+ * The parent pole picker.
+ *
+ * Offers the ten nearest poles rather than every pole in the database: a five
+ * foot way belongs to the pole it is under, so a list of hundreds sorted by
+ * nothing useful is harder to answer from than the handful actually in sight.
+ * The record's location is the reference point, so the list appears once the
+ * point has been placed on the map. Until then, and if the lookup fails, it
+ * falls back to a plain list so the field is never unanswerable.
+ */
+function SavrSelectField({ field, value, onChange, disabled, context }) {
   const [savrRecords, setSavrRecords] = useState([])
   const [loading, setLoading] = useState(true)
+  const [byDistance, setByDistance] = useState(false)
+  const latitude = context?.latitude
+  const longitude = context?.longitude
 
   useEffect(() => {
     let cancelled = false
-    surveyApi.list('savr', { page: 1, page_size: 500 }).then(async (data) => {
-      const items = data.items || []
+    setLoading(true)
+
+    /** Keep a pole already chosen visible even when it is out of range. */
+    const withCurrent = async (items) => {
       if (value && !items.some((s) => s.id === value)) {
         try {
           const current = await surveyApi.get('savr', value)
-          items.unshift(current)
-        } catch { /* parent SAVR may have been deleted */ }
+          return [current, ...items]
+        } catch { /* the parent pole may have been deleted */ }
       }
-      if (!cancelled) setSavrRecords(items)
-    }).catch(() => {}).finally(() => {
-      if (!cancelled) setLoading(false)
-    })
+      return items
+    }
+
+    const load = async () => {
+      if (latitude != null && longitude != null) {
+        try {
+          const items = await assetLinkApi.nearby({
+            latitude,
+            longitude,
+            assetType: 'tbl_savr',
+            radiusM: NEARBY_SAVR_RADIUS_M,
+            limit: NEARBY_SAVR_LIMIT,
+          })
+          if (items.length) {
+            if (!cancelled) setByDistance(true)
+            return withCurrent(items.map((a) => ({
+              id: a.id,
+              tiang_no: a.label || a.device_id,
+              distance_m: a.distance_m,
+            })))
+          }
+        } catch { /* fall through to the full list */ }
+      }
+      if (!cancelled) setByDistance(false)
+      const data = await surveyApi.list('savr', { page: 1, page_size: 500 })
+      return withCurrent(data.items || [])
+    }
+
+    load()
+      .then((items) => { if (!cancelled) setSavrRecords(items) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [value])
+  }, [value, latitude, longitude])
 
   const labelFor = (s) => {
     const tiang = s.tiang_no || (s.id ? s.id.substring(0, 8) : '')
+    if (s.distance_m != null) return `${tiang} · ${Math.round(s.distance_m)} m`
     return s.fp_road ? `${tiang} — ${s.fp_road}` : tiang
   }
 
   return (
-    <select
-      value={value || ''}
-      onChange={(e) => onChange(field.name, e.target.value || null)}
-      disabled={disabled || loading}
-      className="input"
-    >
-      <option value="">{loading ? 'Loading SAVR records…' : '— Select SAVR —'}</option>
-      {savrRecords.map((s) => (
-        <option key={s.id} value={s.id}>
-          {labelFor(s)}
-        </option>
-      ))}
-    </select>
+    <div>
+      <select
+        value={value || ''}
+        onChange={(e) => onChange(field.name, e.target.value || null)}
+        disabled={disabled || loading}
+        className="input"
+      >
+        <option value="">{loading ? 'Loading poles…' : '— Select SAVR —'}</option>
+        {savrRecords.map((s) => (
+          <option key={s.id} value={s.id}>
+            {labelFor(s)}
+          </option>
+        ))}
+      </select>
+      {!loading && (
+        <p className="text-[11px] text-gray-400 mt-0.5">
+          {byDistance
+            ? `Nearest ${NEARBY_SAVR_LIMIT} poles within ${NEARBY_SAVR_RADIUS_M} m of this point.`
+            : latitude == null || longitude == null
+              ? 'Set the location on the map to list the nearest poles.'
+              : 'No pole within range — showing all poles.'}
+        </p>
+      )}
+    </div>
   )
 }

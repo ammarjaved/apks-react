@@ -126,6 +126,10 @@ export default function SurveyDetail({ config, record, onEdit, onDelete, onQaAct
 
   const renderValue = (field, value) => {
     if (value == null || value === '') return <span className="text-gray-300">—</span>
+    if (field.type === 'number-list') {
+      const list = Array.isArray(value) ? value : [value]
+      return list.length ? list.join(', ') : <span className="text-gray-300">—</span>
+    }
 
     // Boolean checkboxes: show Yes/No badge
     if (field.type === 'checkbox') {

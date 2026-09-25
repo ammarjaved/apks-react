@@ -41,6 +41,9 @@ export const SURVEY_TYPES = {
     icon: 'utilitypole',
     color: '#2563eb',
     isWizard: true,
+    // Poles have no substation FK; fp_name is free text. SurveyModule offers a
+    // Substation dropdown and sends the chosen name as `search`.
+    substationFilter: true,
     filters: [
       { name: 'cycle', label: 'Cycle', type: 'number', default: 1 },
       { name: 'qa_status', label: 'QA Status', type: 'select', default: '', options: [{ value: '', label: 'All' }, { value: 'Pending', label: 'Pending' }, { value: 'Accept', label: 'Accepted' }, { value: 'Reject', label: 'Rejected' }] },
@@ -49,6 +52,9 @@ export const SURVEY_TYPES = {
       { key: 'tiang_no', label: 'Tiang No' },
       { key: 'fp_name', label: 'Feeder Pillar' },
       { key: 'fp_road', label: 'Road' },
+      { key: 'feeder_involved', label: 'Feeder Involved' },
+      { key: 'section_from', label: 'Section From' },
+      { key: 'section_to', label: 'Section To' },
       { key: 'size_tiang', label: 'Size' },
       { key: 'jenis_tiang', label: 'Type' },
       { key: 'total_defects', label: 'Defects', type: 'badge' },
@@ -64,6 +70,10 @@ export const SURVEY_TYPES = {
             fields: [
               { name: 'fp_name', label: 'Name of Substation / Feeder Pillar', type: 'text', required: true },
               { name: 'fp_road', label: 'Feeder Name / Street Name', type: 'text', required: true },
+              // number[] on tbl_savr — a pole can sit on several feeders. Text
+              // on the other three tables that share the name. Optional; NULL
+              // means not recorded.
+              { name: 'feeder_involved', label: 'Feeder Involved', type: 'number-list' },
               { name: 'section_from', label: 'Section From', type: 'text' },
               { name: 'section_to', label: 'Section To', type: 'text' },
               { name: 'tiang_no', label: 'Tiang No', type: 'text', required: true },
@@ -104,6 +114,19 @@ export const SURVEY_TYPES = {
               { name: 'hazard_defect', label: 'Hazard Defect', type: 'image' },
             ],
           },
+          {
+            // Before / during / after photos of the two remedial jobs done at
+            // the pole. API codes: banner_* (Iklan Haram) and crepers_* (sic).
+            title: 'Remedial Images',
+            fields: [
+              { name: 'banner_before', label: 'Iklan Haram Before', type: 'image' },
+              { name: 'banner_during', label: 'Iklan Haram During', type: 'image' },
+              { name: 'banner_after', label: 'Iklan Haram After', type: 'image' },
+              { name: 'crepers_before', label: 'Creepers Before', type: 'image' },
+              { name: 'crepers_during', label: 'Creepers During', type: 'image' },
+              { name: 'crepers_after', label: 'Creepers After', type: 'image' },
+            ],
+          },
         ],
       },
       {
@@ -120,6 +143,7 @@ export const SURVEY_TYPES = {
                 name: 'jenis_tiang', label: 'Pole Type', type: 'radio',
                 options: [{ value: 'spun', label: 'Spun' }, { value: 'concrete', label: 'Concrete' }, { value: 'iron', label: 'Iron' }, { value: 'wood', label: 'Wood' }],
               },
+              { name: 'main_line', label: 'Talian Utama (Main Line)', type: 'checkbox' },
               { name: 'main_line_service', label: 'Talian Utama / Servis', type: 'checkbox' },
               { name: 'number_of_services', label: 'Bilangan Servis', type: 'number' },
             ],
@@ -149,8 +173,6 @@ export const SURVEY_TYPES = {
               { name: 'bil_umbang', label: 'BIL Umbang', type: 'text' },
               { name: 'bil_black_box', label: 'Bil Black Box', type: 'text' },
               { name: 'bil_lvpt', label: 'BIL LVPT', type: 'text' },
-              { name: 'bil_size_tiang', label: 'BIL Size Tiang', type: 'text' },
-              { name: 'bil_jenis_tiang', label: 'BIL Jenis Tiang', type: 'text' },
             ],
           },
         ],
@@ -165,6 +187,8 @@ export const SURVEY_TYPES = {
               { name: 'tiang_leaning', label: 'Condong', type: 'checkbox' },
               { name: 'tiang_dim', label: 'Pudar', type: 'checkbox' },
               { name: 'tiang_creepers', label: 'Creepers', type: 'checkbox' },
+              // Same wording as the substation / feeder pillar / link box defect.
+              { name: 'tiang_banner', label: 'Iklan Haram/Banner', type: 'checkbox' },
               { name: 'tiang_other', label: 'Others', type: 'checkbox' },
               { name: 'tiang_other_desc', label: 'Other Description', type: 'text' },
             ],
@@ -294,6 +318,7 @@ export const SURVEY_TYPES = {
     ],
     columns: [
       { key: 'name', label: 'Name' },
+      { key: 'kiv_status', label: 'KIV', type: 'kiv' },
       { key: 'fl', label: 'FL' },
       { key: 'voltage', label: 'Voltage' },
       { key: 'type', label: 'Type' },
@@ -312,6 +337,9 @@ export const SURVEY_TYPES = {
           { name: 'visit_date', label: 'Survey Date', type: 'date', required: true },
           { name: 'patrol_time', label: 'Patrol Time', type: 'time', hidden: true },
           { name: 'is_surveyed', label: 'Surveyed', type: 'checkbox' },
+          // Could not get in (locked / unreachable), so nothing was inspected.
+          // Painted black on the map; not a defect.
+          { name: 'kiv_status', label: 'KIV (No Access)', type: 'checkbox' },
         ],
       },
       {
@@ -320,6 +348,7 @@ export const SURVEY_TYPES = {
           { name: 'gate_locked', label: 'Gate Locked (No Defect)', type: 'checkbox' },
           { name: 'gate_damaged', label: 'Gate Damaged', type: 'checkbox' },
           { name: 'gate_other', label: 'Gate Other', type: 'checkbox' },
+          { name: 'gate_other_remarks', label: 'Gate Other Remarks', type: 'text', maxLength: 255, wide: true },
         ],
       },
       {
@@ -332,6 +361,7 @@ export const SURVEY_TYPES = {
           { name: 'building_broken_gutter', label: 'Building - Broken Gutter', type: 'checkbox' },
           { name: 'building_broken_base', label: 'Building - Broken Base', type: 'checkbox' },
           { name: 'building_other', label: 'Building - Other', type: 'checkbox' },
+          { name: 'building_other_remarks', label: 'Building - Other Remarks', type: 'text', maxLength: 255, wide: true },
         ],
       },
       {
@@ -340,6 +370,7 @@ export const SURVEY_TYPES = {
           { name: 'substation_1', label: 'Substation Image 1', type: 'image', required: true },
           { name: 'substation_2', label: 'Substation Image 2', type: 'image', required: true },
           { name: 'gate_locked', label: 'Gate Locked', type: 'image' },
+          { name: 'gate_cable_tie', label: 'Gate Cable Tie', type: 'image' },
           { name: 'gate_before', label: 'Gate Before', type: 'image' },
           { name: 'banner_before', label: 'Banner Before', type: 'image' },
           { name: 'gate_during', label: 'Gate During', type: 'image' },
@@ -398,7 +429,7 @@ export const SURVEY_TYPES = {
           { name: 'gate_locked', label: 'Gate Locked (No Defect)', type: 'checkbox' },
           { name: 'gate_damaged', label: 'Gate Damaged', type: 'checkbox' },
           { name: 'gate_other', label: 'Gate Other', type: 'checkbox' },
-          { name: 'gate_other_remarks', label: 'Gate Other Remarks', type: 'textarea', wide: true, showWhen: 'gate_other' },
+          { name: 'gate_other_remarks', label: 'Gate Other Remarks', type: 'textarea', wide: true, showWhen: 'gate_other', maxLength: 255 },
         ],
       },
       {
@@ -411,7 +442,7 @@ export const SURVEY_TYPES = {
           { name: 'paint_status', label: 'Paint Faded', type: 'checkbox' },
           { name: 'advertise_poster_status', label: 'Advertisement/Poster', type: 'checkbox' },
           { name: 'other_status', label: 'Others', type: 'checkbox' },
-          { name: 'other_remarks', label: 'Others Remarks', type: 'textarea', wide: true },
+          { name: 'other_remarks', label: 'Others Remarks', type: 'textarea', wide: true, showWhen: 'other_status', maxLength: 255 },
           // Kept for the API / mobile app / QR leaning column. Replaced on the web by Others.
           { name: 'leaning_angle', label: 'Leaning Angle', type: 'text', hidden: true },
         ],
@@ -422,6 +453,7 @@ export const SURVEY_TYPES = {
           { name: 'feeder_pillar_1', label: 'Feeder Pillar Image 1', type: 'image', required: true },
           { name: 'feeder_pillar_2', label: 'Feeder Pillar Image 2', type: 'image', required: true },
           { name: 'gate_locked', label: 'Gate Locked', type: 'image' },
+          { name: 'gate_cable_tie', label: 'Gate Cable Tie', type: 'image' },
           { name: 'name_plate', label: 'Name Plate Image', type: 'image', required: true },
           { name: 'gate_before', label: 'Gate Before', type: 'image' },
           { name: 'gate_during', label: 'Gate During', type: 'image' },
@@ -709,7 +741,21 @@ export const SURVEY_TYPES = {
         title: 'FFW Reading',
         fields: [
           { name: 'house_no', label: 'House No', type: 'text' },
+        ],
+      },
+      {
+        // Every defect flag on tbl_ffw (FFWCreate in the API schema). The
+        // section title has to match DEFECT_SECTION so these reach the table's
+        // defect filter.
+        title: 'FFW Defects',
+        fields: [
           { name: 'arus_bocor', label: 'Arus Bocor (Leakage Current)', type: 'checkbox' },
+          { name: 'junction_box', label: 'Junction Box', type: 'checkbox' },
+          { name: 'cable_tanggal', label: 'Cable Tanggal (Detached Cable)', type: 'checkbox' },
+          { name: 'penggunaan_ipc', label: 'Penggunaan IPC', type: 'checkbox' },
+          { name: 'house_renovation', label: 'House Renovation', type: 'checkbox' },
+          { name: 'other_defect', label: 'Others', type: 'checkbox' },
+          { name: 'other_description', label: 'Other Description', type: 'text' },
         ],
       },
       {
@@ -721,6 +767,11 @@ export const SURVEY_TYPES = {
           { name: 'cable_supply', label: 'Cable Supply Image', type: 'image' },
           { name: 'meter_box', label: 'Meter Box Image', type: 'image' },
           { name: 'front_house', label: 'Front House Image', type: 'image' },
+          // Notice served to the house: the API codes are notice_*, the client's
+          // wording is "Notis".
+          { name: 'notice_before', label: 'Notis Before', type: 'image' },
+          { name: 'notice_during', label: 'Notis During', type: 'image' },
+          { name: 'notice_after', label: 'Notis After', type: 'image' },
           { name: 'other', label: 'Other Image', type: 'image' },
         ],
       },
@@ -734,9 +785,9 @@ export const SURVEY_TYPES = {
  * the many "Others" stay distinguishable. Field names double as the API's
  * column names for the list endpoint's `defects` param.
  */
-const DEFECT_SECTION = /defect|gate status|grounds|site condition|ffw reading/i
+const DEFECT_SECTION = /defect|gate status|grounds|site condition/i
 // Ticked-when-fine, not a defect.
-const NOT_A_DEFECT = new Set(['gate_locked', 'comply', 'is_surveyed', 'main_line_service'])
+const NOT_A_DEFECT = new Set(['gate_locked', 'comply', 'is_surveyed', 'main_line', 'main_line_service', 'kiv_status'])
 
 export function defectOptions(config) {
   const out = []

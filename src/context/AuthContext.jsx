@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { authApi } from '../api/auth'
 
 const AuthContext = createContext(null)
@@ -44,7 +44,15 @@ export function AuthProvider({ children }) {
     return userRoles.some((r) => roles.includes(r)) || userRoles.includes('admin')
   }, [user])
 
-  const value = { user, loading, login, logout, hasRole }
+  // TNB viewer: read-only, QA-accepted records only, no QR. The API enforces
+  // the same; this only keeps the UI from offering what it would refuse.
+  const isTnb = useMemo(() => {
+    if (!user || user.is_admin) return false
+    const userRoles = user.roles || []
+    return userRoles.includes('tnb') && !userRoles.includes('admin')
+  }, [user])
+
+  const value = { user, loading, login, logout, hasRole, isTnb }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
